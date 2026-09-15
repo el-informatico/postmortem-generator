@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "postmortem-generator"
+version = "0.1.0"
+description = "Repo-centric incident postmortem generator: deterministic evidence collector, SZZ-lite introducer linkage, IBM Bob multi-agent orchestration, and evaluation against a real human postmortem (curl CVE-2023-38545)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "postmortem-generator contributors" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+bob-postmortem = "pmg.shell.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pmg*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: needs the local curl clone under .repos/curl (deselect with -m 'not integration')",
+]

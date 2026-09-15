@@ -1,0 +1,55 @@
+{
+  "case": "curl-cve-2023-38545",
+  "cve": "CVE-2023-38545",
+  "summary": "Heap buffer overflow in the SOCKS5 proxy handshake in curl, when a hostname longer than 255 bytes is passed for remote resolution.",
+  "severity": {"cvss": "3.7 Low (CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L)", "quoted": "The CVE is rated LOW severity."},
+  "root_cause": {
+    "statement": "A 512 byte stack buffer was used for both the SOCKS5 handshake and copying the destination hostname for remote resolve, which is allowed to be up to 255 bytes long; a hostname longer than 255 bytes was copied with memcpy without bounds check and overflowed the heap.",
+    "quote": "A 512 byte stack buffer was used for both the SOCKS5 handshake and to copy the destination hostname to, in case of remote resolve. An application could ask curl to send the hostname to the proxy for remote resolving... a hostname longer than 255 bytes would then be copied with memcpy onto the buffer and overflow it.",
+    "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+  },
+  "introducer": {
+    "full_sha": "4a4b63daaaa08d3e5e9dc9e0f7d7b7d3f9952bce",
+    "short_sha": "4a4b63daaa",
+    "subject": "socks: make the connect phase non-blocking",
+    "author": "Daniel Stenberg",
+    "author_date": "2020-02-14",
+    "closes_issue": 4907,
+    "released_in": {"version": "7.69.0", "date": "2020-03-11", "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"}
+  },
+  "fix": {
+    "full_sha": "fb4415d8aee6c1fbd3d7e12a442018c1d6d1d8dd",
+    "short_sha": "fb4415d8aee6",
+    "subject": "socks: return error if hostname too long for remote resolve",
+    "author_date": "2023-10-11",
+    "released_in": {"version": "8.3.0", "date": "2023-10-11", "source": "https://curl.se/docs/CVE-2023-38545.html"}
+  },
+  "detection": {
+    "who": "sample (replace from research)",
+    "how": "sample",
+    "date": null,
+    "quote": "sample",
+    "source": null
+  },
+  "impact": {
+    "quotes": ["sample impact quote"],
+    "sources": ["https://curl.se/docs/CVE-2023-38545.html"],
+    "not_derivable_from_git": ["user impact", "telemetry", "detection"]
+  },
+  "timeline": [
+    {"date": "2020-02-14", "event": "Vulnerable code introduced in commit 4a4b63daaa", "source": "blog"},
+    {"date": "2020-03-11", "event": "curl 7.69.0 released with the bug", "source": "blog"},
+    {"date": "2023-10-11", "event": "Fix committed and curl 8.3.0 released", "source": "advisory"}
+  ],
+  "action_items": [
+    {"item": "Code audit to detect similar unbounded copies", "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"}
+  ],
+  "duration_in_days_undetected": {"value": 1315, "quote": "the bug was present for 1315 days", "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"},
+  "sources": {
+    "advisory": "https://curl.se/docs/CVE-2023-38545.html",
+    "blog": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/",
+    "commits_api": [],
+    "issue_api": []
+  },
+  "_note": "TRIMMED SAMPLE for unit tests. The real, quote-faithful ground truth is data/ground_truth/ground_truth.json — field values here are placeholders and MUST NOT be used as factual reference."
+}

@@ -1,0 +1,81 @@
+{
+  "case": {
+    "name": "curl-cve-2023-38545",
+    "repo": "curl/curl",
+    "issues": [4907],
+    "fix_sha": "fb4415d8aee6",
+    "local_repo": ".repos/curl",
+    "expected_introducer_sha": "4a4b63daaa"
+  },
+  "fix_commit": {
+    "sha": "fb4415d8aee6c1fbd3d7e12a442018c1d6d1d8dd",
+    "short_sha": "fb4415d8ae",
+    "subject": "socks: return error if hostname too long for remote resolve",
+    "author": "Daniel Stenberg",
+    "author_date": "2023-10-11T00:00:00+02:00",
+    "message": "socks: return error if hostname too long for remote resolve\n\nWhen curl is asked to pass along the hostname to the SOCKS5 proxy itself for remote resolving, and that hostname is longer than 255 bytes, the old code would copy it to a stack-based buffer with memcpy without bounds check and overflow the heap.\n\nReported-by: ... (see advisory)\n\nFixes CVE-2023-38545\nCloses #12033\n",
+    "files": ["lib/socks.c", "tests/data/test728", "tests/unit/unit1620.c"],
+    "diff": "--- a/lib/socks.c\n+++ b/lib/socks.c\n@@ -xxx,6 +xxx,12 @@ static CURLcode socks5_resolve_local(...) \n+  if(hostname_len > 255) {\n+    failf(data, \"SOCKS5: the destination hostname is too long to be \"\n+          \"passed in the request to the proxy\");\n+    return CURLE_URL_MALFORMAT;\n+  }\n",
+    "url": "https://github.com/curl/curl/commit/fb4415d8aee6c1fbd3d7e12a442018c1d6d1d8dd"
+  },
+  "issues": [
+    {
+      "number": 4907,
+      "title": "SOCKS: make the connect phase non-blocking",
+      "state": "closed",
+      "author": "souply",
+      "created_at": "2020-01-29T00:00:00Z",
+      "body": "curl's SOCKS support blocks the application during the connect phase. This asks for a non-blocking SOCKS connect so that the multi API can be used properly with SOCKS proxies.",
+      "comments": [
+        {
+          "author": "bagder",
+          "created_at": "2020-02-03T00:00:00Z",
+          "body": "Thanks, I will look at making the connect non-blocking."
+        },
+        {
+          "author": "bagder",
+          "created_at": "2020-02-14T00:00:00Z",
+          "body": "Fixed in commit 4a4b63daaa, shipped in the next release."
+        }
+      ],
+      "url": "https://github.com/curl/curl/issues/4907"
+    }
+  ],
+  "introducer_candidates": [
+    {
+      "sha": "4a4b63daaaa08d3e5e9dc9e0f7d7b7d3f9952bce",
+      "short_sha": "4a4b63daaa",
+      "subject": "socks: make the connect phase non-blocking",
+      "author": "Daniel Stenberg",
+      "author_date": "2020-02-14T00:00:00+01:00",
+      "methods": ["szz-blame", "log-S", "issue-link"],
+      "score": 0.97,
+      "detail": {
+        "blamed_lines": ["lib/socks.c:522", "lib/socks.c:525"],
+        "pickaxe_string": "socks5_resolve_local",
+        "linked_issue": 4907
+      }
+    },
+    {
+      "sha": "9686d94d1a3e2d1bd6678bd1a6bf6f0cd86e1234",
+      "short_sha": "9686d94d1a",
+      "subject": "socks: add support for SOCKS5 remote resolve",
+      "author": "Daniel Stenberg",
+      "author_date": "2017-03-01T00:00:00+01:00",
+      "methods": ["log-S"],
+      "score": 0.42,
+      "detail": {"pickaxe_string": "socks5_resolve_local"}
+    }
+  ],
+  "timeline": [
+    {"date": "2020-01-29", "kind": "issue", "description": "Issue #4907 opened: make SOCKS connect phase non-blocking", "ref": "issue:4907"},
+    {"date": "2020-02-14", "kind": "commit", "description": "Commit 4a4b63daaa introduces the SOCKS5 remote-resolve code later found vulnerable (closes #4907)", "ref": "candidate:4a4b63daaa"},
+    {"date": "2023-10-11", "kind": "commit", "description": "Commit fb4415d8aee6 fixes the heap overflow (CVE-2023-38545)", "ref": "fix"}
+  ],
+  "meta": {
+    "collected_at": "2026-09-15T00:00:00Z",
+    "offline": true,
+    "sources": ["local git clone", "GitHub API (cached)"],
+    "notes": "trimmed sample for unit tests (diffs abbreviated)"
+  }
+}

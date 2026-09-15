@@ -1,0 +1,36 @@
+# local repo clones used for offline evidence collection
+.repos/
+# GitHub API disk cache (rebuildable)
+data/cache/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# coverage / tool caches (future-proofing)
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# environments / secrets (defense-in-depth; none currently used)
+.env
+.env.*
+
+# editors & IDEs
+.idea/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# editor backup files
+*.bak
+*~
