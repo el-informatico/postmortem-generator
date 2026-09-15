@@ -339,10 +339,11 @@ def _matches(exc: BaseException, cls: type | None, name: str) -> bool:
 
 
 def _human_text(gt_path: Path) -> str | None:
-    """advisory.md + blog.md sitting next to the ground truth file (the human
-    postmortem text used by the line_agreement metric); None when absent."""
+    """Human postmortem prose sitting next to the ground truth file (used by
+    the line_agreement metric); None when absent. Recognized file names:
+    advisory.md, blog.md, postmortem.md."""
     parts: list[str] = []
-    for name in ("advisory.md", "blog.md"):
+    for name in ("advisory.md", "blog.md", "postmortem.md"):
         path = gt_path.parent / name
         if path.is_file():
             parts.append(path.read_text(encoding="utf-8"))

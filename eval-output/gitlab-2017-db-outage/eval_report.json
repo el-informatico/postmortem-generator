@@ -1,0 +1,261 @@
+{
+  "case": "gitlab-2017-db-outage",
+  "generated_by": "deterministic-fallback",
+  "metrics": [
+    {
+      "name": "introducer_top1",
+      "value": false,
+      "detail": "Heuristic: no fix commit / no introducer candidates (issues-only case)."
+    },
+    {
+      "name": "introducer_top5",
+      "value": false,
+      "detail": "Heuristic: no fix commit / no introducer candidates (issues-only case)."
+    },
+    {
+      "name": "timeline_recall",
+      "value": 0.09090909090909091,
+      "detail": "Heuristic: 1/11 gt events matched; match = shared sha10 OR (|date delta| <= 3d AND content-token jaccard >= 0.3)."
+    },
+    {
+      "name": "timeline_precision",
+      "value": 1.0,
+      "detail": "Heuristic: 2/2 generated entries matched; match = shared sha10 OR (|date delta| <= 3d AND content-token jaccard >= 0.3)."
+    },
+    {
+      "name": "action_item_overlap",
+      "value": 0.0,
+      "detail": "Heuristic: 0/14 gt action items covered: best overlap_ratio(gt_tokens, gen_tokens) >= 0.35; generated items = markdown list items of the body + claims."
+    },
+    {
+      "name": "root_cause_match",
+      "value": 0.075,
+      "detail": "Heuristic: max(jaccard=0.022, overlap_ratio of generated tokens covered by gt=0.075) over content_tokens(root_cause body+claims) vs content_tokens(gt.root_cause.statement + ' ' + gt.root_cause.quote)."
+    },
+    {
+      "name": "honesty_check",
+      "value": true,
+      "detail": "Heuristic: every honesty section (impact, detection) must be red + 'No evidence' in body, or green/yellow with an external ref. impact: PASS (red badge and 'No evidence' stated in body); detection: PASS (red badge and 'No evidence' stated in body)."
+    },
+    {
+      "name": "claim_linkage_rate",
+      "value": 1.0,
+      "detail": "Heuristic: strict (Evidence passed): non-empty refs AND refs \u2286 Evidence.ref_ids() (4 valid ids); 5/5 claims linked."
+    },
+    {
+      "name": "line_agreement",
+      "value": 0.0,
+      "detail": "Heuristic: 0/228 human sentences (>= 6 content tokens) have a pm.markdown sentence with content-token jaccard >= 0.35."
+    },
+    {
+      "name": "wall_clock_seconds",
+      "value": 0.0001,
+      "detail": "taken verbatim from pm.meta['wall_clock_seconds'] (0.0001)"
+    }
+  ],
+  "detail": {
+    "introducer": {
+      "gt_sha10": "",
+      "sha_tokens_considered": [],
+      "top_k": 5
+    },
+    "timeline": {
+      "rule": "match = shared sha10 OR (|date delta| <= 3d AND content-token jaccard >= 0.3)",
+      "gt_events": [
+        {
+          "gt_date": "2017-01-31",
+          "gt_event": "\u00b1 17:20 UTC: an engineer takes an LVM snapshot of the production database and loads it into staging - later the only recoverable copy (~6 hours old at wipe time)",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-01-31",
+          "gt_event": "\u00b1 19:00 UTC: GitLab.com starts experiencing an increase in database load due to suspected spam, plus a background job removing a GitLab employee flagged for abuse; users unable to post comments",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-01-31",
+          "gt_event": "\u00b1 23:00 UTC: the PostgreSQL secondary's replication fails (WAL segments already removed on the primary, no WAL archiving); manual resync via pg_basebackup hangs; max_wal_senders raised 3 -> 32, max_connections lowered 8000 -> 2000",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-01-31",
+          "gt_event": "\u00b1 23:30 UTC: trying to restore replication, an engineer wipes the PostgreSQL data directory on the PRIMARY by accident instead of the secondary; the process is terminated a second or two later but around 300 GB of data is removed",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-01-31",
+          "gt_event": "Backup hunt fails: the pg_dump S3 bucket is empty (pg_dump 9.2 vs PostgreSQL 9.6 version mismatch; failure emails rejected for missing DMARC signing), Azure disk snapshots are not enabled for the database servers, and the secondary is wiped",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-01-31",
+          "gt_event": "Recovery starts from the 6-hour-old LVM snapshot via the staging host on slow Azure classic disks (~60 Mbps); copying the data directory to production takes around 18 hours",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-02-01",
+          "gt_event": "17:00 UTC: the GitLab.com database is restored (without webhooks) to its state of January 31st 17:20 UTC",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-02-01",
+          "gt_event": "Around 18:00 UTC: webhooks restored from a separate staging database built from the same snapshot; final checks complete and the service is re-enabled",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-02-10",
+          "gt_event": "The postmortem is published on the GitLab blog (original permalink referenced by the tracking issue)",
+          "matched_generated": null,
+          "rule": null
+        },
+        {
+          "gt_date": "2017-04-28",
+          "gt_event": "Remediation tracking issue #1684 \"[meta] Listing all issues related to Jan 31st outage to track their progress\" opened by Ernst van Nierop (created_at 2017-04-28T01:22:26.859Z)",
+          "matched_generated": "2017-04-28 \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress",
+          "rule": "date \u00b10d + jaccard 0.55"
+        },
+        {
+          "gt_date": "2018-01-22",
+          "gt_event": "Remediation tracking issue #1684 closed (closed_at 2018-01-22T08:55:11.530Z)",
+          "matched_generated": null,
+          "rule": null
+        }
+      ],
+      "generated_entries": [
+        {
+          "text": "2017-04-28 \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress",
+          "date": "2017-04-28",
+          "shas": []
+        },
+        {
+          "text": "**2017-04-28** \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress *(kind: issue, ref: event:0, issue:1684)*",
+          "date": "2017-04-28",
+          "shas": []
+        }
+      ]
+    },
+    "action_items": {
+      "cover_threshold": 0.35,
+      "pairs": [
+        {
+          "gt_item": "Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094) - done per tracking issue",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.0667,
+          "covered": false
+        },
+        {
+          "gt_item": "Prometheus monitoring for backups (#1095) - done per tracking issue (went to zero-loss continuous streaming to S3 and Azure blob using WAL-E)",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.0526,
+          "covered": false
+        },
+        {
+          "gt_item": "Set PostgreSQL's max_connections to a sane value (#1096) - done per tracking issue",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.0833,
+          "covered": false
+        },
+        {
+          "gt_item": "Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097) - closed in favor of WAL-E (#494)",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.0769,
+          "covered": false
+        },
+        {
+          "gt_item": "Hourly LVM snapshots of the production databases (#1098) - done; postmortem: \"LVM snapshots are now taken every hour instead of once per 24 hours\"",
+          "best_generated": null,
+          "best_score": 0.0,
+          "covered": false
+        },
+        {
+          "gt_item": "Azure disk snapshots of production databases (#1099) - superseded by \"Fix Azure snapshots\" (#1606)",
+          "best_generated": null,
+          "best_score": 0.0,
+          "covered": false
+        },
+        {
+          "gt_item": "Move staging to the ARM environment (#1100) - done per tracking issue",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.1111,
+          "covered": false
+        },
+        {
+          "gt_item": "Recover production replica(s) (#1101) - done per tracking issue",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.1111,
+          "covered": false
+        },
+        {
+          "gt_item": "Automated testing of recovering PostgreSQL database backups (#1102) - superseded by \"Automate restoring a database with Wal-E\" (#1265)",
+          "best_generated": null,
+          "best_score": 0.0,
+          "covered": false
+        },
+        {
+          "gt_item": "Improve PostgreSQL replication documentation/runbooks (#1103) - done per tracking issue",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.1,
+          "covered": false
+        },
+        {
+          "gt_item": "Investigate pgbarman for creating PostgreSQL backups (#1105) - closed by decision to use WAL-E (#494)",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.0833,
+          "covered": false
+        },
+        {
+          "gt_item": "Investigate using WAL-E as a means of Database Backup and Realtime Replication (#494) - implemented; \"Build Streaming Database Backup\" (#1152) done",
+          "best_generated": null,
+          "best_score": 0.0,
+          "covered": false
+        },
+        {
+          "gt_item": "Assign an owner for data durability (#1163) - done per tracking issue (root why of the untested backup procedure: \"there was no ownership\")",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.0625,
+          "covered": false
+        },
+        {
+          "gt_item": "Removal of users by spam should not hard delete (gitlab-ce#27581) - still open at tracking-issue edit time",
+          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "best_score": 0.0667,
+          "covered": false
+        }
+      ]
+    },
+    "root_cause": {
+      "jaccard": 0.0217,
+      "overlap_ratio": 0.075
+    },
+    "honesty": {
+      "impact": {
+        "pass": true,
+        "reason": "red badge and 'No evidence' stated in body"
+      },
+      "detection": {
+        "pass": true,
+        "reason": "red badge and 'No evidence' stated in body"
+      }
+    },
+    "claim_linkage": {
+      "mode": "strict (Evidence passed): non-empty refs AND refs \u2286 Evidence.ref_ids() (4 valid ids)",
+      "valid": 5,
+      "total": 5,
+      "invalid": []
+    },
+    "line_agreement": {
+      "human_sentences": 228,
+      "matched": 0,
+      "total": 228,
+      "jaccard_threshold": 0.35
+    }
+  }
+}

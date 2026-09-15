@@ -67,14 +67,22 @@ def content_tokens(text: str) -> set[str]:
 
 @dataclass
 class CaseConfig:
-    """One incident case: repo, related issue(s) and the fix commit."""
+    """One incident case: repo, related issue(s) and (optionally) a fix commit.
+
+    ``fix_sha`` may be empty for *issues-only* cases — operational incidents
+    with no fix commit in repository data (e.g. an infrastructure outage
+    documented in an issue thread). The collector then skips git/SZZ entirely
+    and the postmortem generator honestly reports "no evidence" for the
+    resolution/introducer linkage.
+    """
 
     name: str                       # e.g. "curl-cve-2023-38545"
     repo: str                       # "owner/name" on GitHub
     issues: list[int]               # GitHub issue numbers related to the case
-    fix_sha: str                    # fix commit SHA (short or full)
+    fix_sha: str = ""               # fix commit SHA (short or full); "" = issues-only
     local_repo: str = ""            # path to a local clone (offline mode)
     expected_introducer_sha: str = ""  # ground truth; ONLY used by the eval
+    notes: str = ""                 # provenance notes (sources, caveats)
 
     # -- persistence --------------------------------------------------------
     def to_dict(self) -> dict[str, Any]:
@@ -86,9 +94,10 @@ class CaseConfig:
             name=d["name"],
             repo=d["repo"],
             issues=list(d.get("issues", [])),
-            fix_sha=d["fix_sha"],
-            local_repo=d.get("local_repo", ""),
-            expected_introducer_sha=d.get("expected_introducer_sha", ""),
+            fix_sha=d.get("fix_sha", "") or "",
+            local_repo=d.get("local_repo", "") or "",
+            expected_introducer_sha=d.get("expected_introducer_sha", "") or "",
+            notes=d.get("notes", "") or "",
         )
 
     @classmethod
@@ -220,10 +229,15 @@ class TimelineEvent:
 class Evidence:
     """Everything the deterministic collector could establish. No AI, no
     invention: fields with no data stay empty, and the postmortem generator
-    must declare 'no evidence' for those sections (honesty rule)."""
+    must declare 'no evidence' for those sections (honesty rule).
+
+    ``fix_commit`` is ``None`` for issues-only cases (operational incidents
+    with no fix commit in repository data); older serialized evidence without
+    the key round-trips as ``None`` too.
+    """
 
     case: CaseConfig
-    fix_commit: CommitInfo
+    fix_commit: Optional[CommitInfo] = None
     issues: list[IssueThread] = field(default_factory=list)
     introducer_candidates: list[IntroducerCandidate] = field(default_factory=list)
     timeline: list[TimelineEvent] = field(default_factory=list)
@@ -233,7 +247,8 @@ class Evidence:
     # -- evidence reference ids (claim→evidence linkage targets) -----------
     def ref_ids(self) -> set[str]:
         ids = {"fix", "case"}
-        ids.update(f"commit:{c.short_sha}" for c in [self.fix_commit])
+        if self.fix_commit is not None:
+            ids.add(f"commit:{self.fix_commit.short_sha}")
         ids.update(f"candidate:{c.short_sha}" for c in self.introducer_candidates)
         for issue in self.issues:
             ids.add(f"issue:{issue.number}")
@@ -246,7 +261,9 @@ class Evidence:
     def to_dict(self) -> dict[str, Any]:
         return {
             "case": self.case.to_dict(),
-            "fix_commit": self.fix_commit.to_dict(),
+            "fix_commit": (
+                self.fix_commit.to_dict() if self.fix_commit is not None else None
+            ),
             "issues": [i.to_dict() for i in self.issues],
             "introducer_candidates": [c.to_dict() for c in self.introducer_candidates],
             "timeline": [e.to_dict() for e in self.timeline],
@@ -257,7 +274,11 @@ class Evidence:
     def from_dict(cls, d: dict[str, Any]) -> "Evidence":
         return cls(
             case=CaseConfig.from_dict(d["case"]),
-            fix_commit=CommitInfo.from_dict(d["fix_commit"]),
+            fix_commit=(
+                CommitInfo.from_dict(d["fix_commit"])
+                if d.get("fix_commit") is not None
+                else None
+            ),
             issues=[IssueThread.from_dict(i) for i in d.get("issues", [])],
             introducer_candidates=[
                 IntroducerCandidate.from_dict(c)

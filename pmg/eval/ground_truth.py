@@ -15,12 +15,14 @@ Heuristics (documented, deterministic):
 - ``load``: ``json.load`` + shape validation. Required keys: ``case``,
   ``introducer.short_sha``, ``fix.short_sha``, ``timeline`` (list),
   ``action_items`` (list), ``root_cause``. Missing keys raise
-  ``GroundTruthError`` naming every missing key. Nulls elsewhere are
+  ``GroundTruthError`` naming every missing key. ``introducer`` and ``fix``
+  may be explicitly ``null`` (issues-only ground truth, e.g. an operational
+  incident with no code fix — the JSON documents why). Nulls elsewhere are
   tolerated (the eval treats them as absent data).
-- ``human_text``: concatenation of ``advisory.md`` + ``blog.md`` from the
-  ground-truth directory (in that order) when both/either exist; HTML
-  comments are stripped. Returns ``None`` when the directory is not given
-  or neither file exists.
+- ``human_text``: concatenation of ``advisory.md`` + ``blog.md`` +
+  ``postmortem.md`` from the ground-truth directory (in that order) when
+  any exist; HTML comments are stripped. Returns ``None`` when the
+  directory is not given or none of the files exists.
 - ``sentences``: split text on newlines, then on ``[.!?]`` followed by
   whitespace. Drop markdown header lines (``#``), link-only / nav-cruft
   lines (no content tokens left after removing markdown links, bare URLs
@@ -84,7 +86,12 @@ def load(path: Path) -> dict:
 
     missing: list[str] = [k for k in _REQUIRED_TOP if k not in gt]
     for container, leaf in _REQUIRED_NESTED:
+        if container not in gt:
+            missing.append(f"{container}.{leaf}")
+            continue
         sub = gt.get(container)
+        if sub is None:
+            continue  # explicit null = documented absence (issues-only case)
         if not isinstance(sub, dict) or leaf not in sub:
             missing.append(f"{container}.{leaf}")
     if missing:
@@ -101,9 +108,9 @@ def load(path: Path) -> dict:
 def human_text(gt: dict, ground_truth_dir: Path | None = None) -> str | None:
     """Return the human-written postmortem prose, or ``None`` if absent.
 
-    Concatenates ``advisory.md`` and ``blog.md`` (in that order) from
-    ``ground_truth_dir`` when they exist, stripping HTML comments and
-    trimming whitespace. ``gt`` is accepted for signature symmetry (the
+    Concatenates ``advisory.md``, ``blog.md`` and ``postmortem.md`` (in that
+    order) from ``ground_truth_dir`` when they exist, stripping HTML comments
+    and trimming whitespace. ``gt`` is accepted for signature symmetry (the
     file list is fixed) and currently unused.
 
     Returns ``None`` when the directory is not given or neither file exists.
@@ -111,7 +118,7 @@ def human_text(gt: dict, ground_truth_dir: Path | None = None) -> str | None:
     if ground_truth_dir is None:
         return None
     parts: list[str] = []
-    for name in ("advisory.md", "blog.md"):
+    for name in ("advisory.md", "blog.md", "postmortem.md"):
         p = Path(ground_truth_dir) / name
         if p.is_file():
             text = p.read_text(encoding="utf-8")

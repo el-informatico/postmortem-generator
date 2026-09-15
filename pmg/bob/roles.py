@@ -139,8 +139,14 @@ def _truncate(text: str, limit: int) -> str:
     return text[:limit] + "\n... [diff truncated at %d chars]" % limit
 
 
-def _fix_commit_dict(evidence: Evidence, include_diff: bool) -> dict[str, Any]:
-    """Fix commit as a dict; diff only for the code-reviewer (truncated)."""
+def _fix_commit_dict(evidence: Evidence, include_diff: bool) -> dict[str, Any] | None:
+    """Fix commit as a dict; diff only for the code-reviewer (truncated).
+
+    ``None`` for issues-only cases (no fix commit in repository data) — the
+    prompt then carries an explicit null and the role must not invent a fix.
+    """
+    if evidence.fix_commit is None:
+        return None
     d = evidence.fix_commit.to_dict()
     if include_diff:
         d["diff"] = _truncate(d.get("diff", ""), DIFF_MAX_CHARS)

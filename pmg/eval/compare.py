@@ -20,7 +20,11 @@ Heuristics (canonical names in ``pmg.contracts.METRIC_NAMES``):
   or short_sha)``. No sha token in the section -> False ("no introducer
   sha stated").
 - ``introducer_top5`` (bool): the ground-truth sha10 is among the first
-  five DISTINCT sha10 tokens found in the root_cause section.
+  five DISTINCT sha10 tokens found in the root_cause section. For
+  issues-only cases (``evidence`` without a fix commit, e.g. operational
+  incidents) with a null ground-truth introducer, both introducer metrics
+  are False with the detail "no fix commit / no introducer candidates
+  (issues-only case)".
 - ``timeline_recall`` (float | None): a gt timeline event counts as
   matched when some generated timeline entry (each claim, plus each body
   line that is a markdown list item or contains a YYYY-MM-DD date)
@@ -221,7 +225,10 @@ def _timeline_pair_rule(gt_ev: dict[str, Any], gen_ev: dict[str, Any]) -> Option
 # ---------------------------------------------------------------------------
 
 def _introducer_metrics(
-    pm: Postmortem, gt: dict[str, Any], candidate_sha10s: list[str] | None = None
+    pm: Postmortem,
+    gt: dict[str, Any],
+    candidate_sha10s: list[str] | None = None,
+    issues_only: bool = False,
 ) -> tuple[Metric, Metric, dict[str, Any]]:
     section = pm.section("root_cause")
     gt_sha = _gt_introducer_sha10(gt)
@@ -230,6 +237,13 @@ def _introducer_metrics(
         tokens: list[str] = []
         top1 = top5 = False
         d1 = d5 = "root_cause section missing"
+    elif issues_only and not gt_sha:
+        # Ops incident without a fix commit: no candidates were even searched.
+        tokens = _sha10_tokens(_section_text(section))
+        top1 = top5 = False
+        d1 = d5 = (
+            "no fix commit / no introducer candidates (issues-only case)"
+        )
     else:
         tokens = _sha10_tokens(_section_text(section))
         if not gt_sha:
@@ -401,6 +415,15 @@ def _root_cause_metric(pm: Postmortem, gt: dict[str, Any]) -> tuple[Metric, dict
     gt_rc = gt.get("root_cause") or {}
     gt_text = " ".join(str(gt_rc.get(k) or "") for k in ("statement", "quote"))
 
+    if not gt_text.strip():
+        # Ground truth carries no root-cause statement (null) — undefined,
+        # same None convention as timeline_recall/action_item_overlap.
+        metric = Metric(
+            "root_cause_match",
+            None,
+            detail="Heuristic: no ground truth root cause text (undefined).",
+        )
+        return metric, {"jaccard": None, "overlap_ratio": None}
     if section is None:
         value, text, jac, ovr = 0.0, "root_cause section missing", 0.0, 0.0
     else:
@@ -609,7 +632,10 @@ def evaluate(
     candidate_sha10s = (
         [sha10(c.sha) for c in evidence.introducer_candidates] if evidence else None
     )
-    m_top1, m_top5, detail["introducer"] = _introducer_metrics(pm, gt, candidate_sha10s)
+    issues_only = evidence is not None and evidence.fix_commit is None
+    m_top1, m_top5, detail["introducer"] = _introducer_metrics(
+        pm, gt, candidate_sha10s, issues_only=issues_only
+    )
     m_recall, m_precision, detail["timeline"] = _timeline_metrics(pm, gt)
     m_actions, detail["action_items"] = _action_item_metric(pm, gt)
     m_root_cause, detail["root_cause"] = _root_cause_metric(pm, gt)

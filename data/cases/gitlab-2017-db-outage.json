@@ -1,0 +1,9 @@
+{
+  "name": "gitlab-2017-db-outage",
+  "repo": "gitlab-com/infrastructure",
+  "issues": [1684],
+  "fix_sha": "",
+  "local_repo": "",
+  "expected_introducer_sha": "",
+  "notes": "Ops incident (2017-01-31 GitLab.com database outage): no fix commit exists in any repository, so fix_sha is intentionally EMPTY (issues-only case) and no local repo is needed. Issue #1684 is the remediation tracking issue; the project lives on gitlab.com (gitlab-com/infrastructure, later moved to gitlab-com/gl-infra/production-engineering), so the GitHub-API cache entries under data/cache/ for this case are hand-seeded verbatim from the GitLab.com REST API v4 (GitHub hosts no mirror with issues; refresh_cache.py cannot warm this case - see data/ground_truth/gitlab-2017-db-outage/NOTES.md)."
+}

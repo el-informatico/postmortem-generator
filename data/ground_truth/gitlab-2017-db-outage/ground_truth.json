@@ -1,0 +1,167 @@
+{
+  "case": "gitlab-2017-db-outage",
+  "cve": null,
+  "summary": "On January 31st 2017, GitLab.com experienced a major service outage caused by an accidental removal of data from the primary database server. The service was unavailable for many hours (~18 hours) and roughly 6 hours of production database modifications were permanently lost; recovery used an LVM snapshot taken 6 hours before the outage.",
+  "severity": {
+    "cvss": null,
+    "quoted": "a major service outage"
+  },
+  "root_cause": {
+    "statement": "A database load spike (suspected spam plus a background job accidentally removing a GitLab employee's data) broke PostgreSQL replication because the primary removed WAL segments before the secondary could replicate them; while manually rebuilding the secondary, an engineer wiped the PostgreSQL data directory on the PRIMARY by accident (~300 GB removed). Recovery then took ~18 hours because every regular backup path had silently failed: pg_dump backups had not run for months (Omnibus defaulted to pg_dump 9.2 against PostgreSQL 9.6, erroring; failure notification emails were rejected due to missing DMARC signing), Azure disk snapshots were not enabled for the database servers, and the secondary's data had been wiped as part of the replication rebuild. The only usable copy was a staging LVM snapshot from ~6 hours before the outage, hosted on slow Azure classic storage.",
+    "quote": "Why was GitLab.com down? - The database directory of the primary database was removed by accident, instead of removing the database directory of the secondary. / Why could we not use the standard backup procedure? - The standard backup procedure uses pg_dump to perform a logical backup of the database. This procedure failed silently because it was using PostgreSQL 9.2, while GitLab.com runs on PostgreSQL 9.6.",
+    "source": "https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/"
+  },
+  "introducer": null,
+  "introducer_is_null_because": "Operational incident with no code change that introduced a defect: the trigger was a load spike plus a human error during manual replication repair, not a commit in a repository. Recording any commit as 'introducer' would be fabrication.",
+  "fix": null,
+  "fix_is_null_because": "Ops incident with no fix commit: remediation was procedural/infrastructure work tracked as issues #1094-#1105 and follow-ups (see action_items), not a single repository commit.",
+  "detection": {
+    "who": "GitLab.com infrastructure engineers (internal, during the incident)",
+    "how": "The team observed the database load increase themselves while working; detection of the *data loss* was immediate (the engineer terminated the accidental rm a second or two in), and the failed backups were discovered while looking for recovery copies.",
+    "date": "2017-01-31",
+    "quote": "± 19:00 UTC: GitLab.com starts experiencing an increase in database load due to what we suspect was spam.",
+    "source": "https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/"
+  },
+  "impact": {
+    "quotes": [
+      "This incident caused the GitLab.com service to be unavailable for many hours.",
+      "Problem 1: GitLab.com was down for about 18 hours.",
+      "Specifically, we lost modifications to database data such as projects, comments, user accounts, issues and snippets, that took place between 17:20 and 00:00 UTC on January 31.",
+      "Our best estimate is that it affected roughly 5,000 projects, 5,000 comments and 700 new user accounts.",
+      "Code repositories or wikis hosted on GitLab.com were unavailable during the outage, but were not affected by the data loss.",
+      "GitLab Enterprise customers, GitHost customers, and self-managed GitLab CE users were not affected by the outage, or the data loss.",
+      "The engineer terminated the process a second or two after noticing their mistake, but at this point around 300 GB of data had already been removed.",
+      "We also streamed the recovery procedure on YouTube, with a peak viewer count of around 5000 (resulting in the stream being the #2 live stream on YouTube for several hours)."
+    ],
+    "sources": [
+      "https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/"
+    ],
+    "not_derivable_from_git": [
+      "user impact",
+      "telemetry",
+      "detection"
+    ]
+  },
+  "timeline": [
+    {
+      "date": "2017-01-31",
+      "event": "± 17:20 UTC: an engineer takes an LVM snapshot of the production database and loads it into staging - later the only recoverable copy (~6 hours old at wipe time)",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-01-31",
+      "event": "± 19:00 UTC: GitLab.com starts experiencing an increase in database load due to suspected spam, plus a background job removing a GitLab employee flagged for abuse; users unable to post comments",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-01-31",
+      "event": "± 23:00 UTC: the PostgreSQL secondary's replication fails (WAL segments already removed on the primary, no WAL archiving); manual resync via pg_basebackup hangs; max_wal_senders raised 3 -> 32, max_connections lowered 8000 -> 2000",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-01-31",
+      "event": "± 23:30 UTC: trying to restore replication, an engineer wipes the PostgreSQL data directory on the PRIMARY by accident instead of the secondary; the process is terminated a second or two later but around 300 GB of data is removed",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-01-31",
+      "event": "Backup hunt fails: the pg_dump S3 bucket is empty (pg_dump 9.2 vs PostgreSQL 9.6 version mismatch; failure emails rejected for missing DMARC signing), Azure disk snapshots are not enabled for the database servers, and the secondary is wiped",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-01-31",
+      "event": "Recovery starts from the 6-hour-old LVM snapshot via the staging host on slow Azure classic disks (~60 Mbps); copying the data directory to production takes around 18 hours",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-02-01",
+      "event": "17:00 UTC: the GitLab.com database is restored (without webhooks) to its state of January 31st 17:20 UTC",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-02-01",
+      "event": "Around 18:00 UTC: webhooks restored from a separate staging database built from the same snapshot; final checks complete and the service is re-enabled",
+      "source": "postmortem"
+    },
+    {
+      "date": "2017-02-10",
+      "event": "The postmortem is published on the GitLab blog (original permalink referenced by the tracking issue)",
+      "source": "issue-1684"
+    },
+    {
+      "date": "2017-04-28",
+      "event": "Remediation tracking issue #1684 \"[meta] Listing all issues related to Jan 31st outage to track their progress\" opened by Ernst van Nierop (created_at 2017-04-28T01:22:26.859Z)",
+      "source": "issue-1684"
+    },
+    {
+      "date": "2018-01-22",
+      "event": "Remediation tracking issue #1684 closed (closed_at 2018-01-22T08:55:11.530Z)",
+      "source": "issue-1684"
+    }
+  ],
+  "action_items": [
+    {
+      "item": "Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094) - done per tracking issue",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1094"
+    },
+    {
+      "item": "Prometheus monitoring for backups (#1095) - done per tracking issue (went to zero-loss continuous streaming to S3 and Azure blob using WAL-E)",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1095"
+    },
+    {
+      "item": "Set PostgreSQL's max_connections to a sane value (#1096) - done per tracking issue",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1096"
+    },
+    {
+      "item": "Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097) - closed in favor of WAL-E (#494)",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1097"
+    },
+    {
+      "item": "Hourly LVM snapshots of the production databases (#1098) - done; postmortem: \"LVM snapshots are now taken every hour instead of once per 24 hours\"",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1098"
+    },
+    {
+      "item": "Azure disk snapshots of production databases (#1099) - superseded by \"Fix Azure snapshots\" (#1606)",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1099"
+    },
+    {
+      "item": "Move staging to the ARM environment (#1100) - done per tracking issue",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1100"
+    },
+    {
+      "item": "Recover production replica(s) (#1101) - done per tracking issue",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1101"
+    },
+    {
+      "item": "Automated testing of recovering PostgreSQL database backups (#1102) - superseded by \"Automate restoring a database with Wal-E\" (#1265)",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1102"
+    },
+    {
+      "item": "Improve PostgreSQL replication documentation/runbooks (#1103) - done per tracking issue",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1103"
+    },
+    {
+      "item": "Investigate pgbarman for creating PostgreSQL backups (#1105) - closed by decision to use WAL-E (#494)",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1105"
+    },
+    {
+      "item": "Investigate using WAL-E as a means of Database Backup and Realtime Replication (#494) - implemented; \"Build Streaming Database Backup\" (#1152) done",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/494"
+    },
+    {
+      "item": "Assign an owner for data durability (#1163) - done per tracking issue (root why of the untested backup procedure: \"there was no ownership\")",
+      "source": "https://gitlab.com/gitlab-com/infrastructure/issues/1163"
+    },
+    {
+      "item": "Removal of users by spam should not hard delete (gitlab-ce#27581) - still open at tracking-issue edit time",
+      "source": "https://gitlab.com/gitlab-org/gitlab-ce/issues/27581"
+    }
+  ],
+  "duration_in_days_undetected": null,
+  "sources": {
+    "postmortem": "https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/",
+    "postmortem_original_permalink": "https://about.gitlab.com/2017/02/10/postmortem-of-database-outage-of-january-31/",
+    "issue_1684": "https://gitlab.com/gitlab-com/infrastructure/-/issues/1684",
+    "issue_1684_api": "https://gitlab.com/api/v4/projects/gitlab-com%2Finfrastructure/issues/1684"
+  }
+}

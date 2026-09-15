@@ -78,25 +78,36 @@ def collect_case(
     ``repo_path`` overrides ``case.local_repo``; relative repo paths resolve
     against the current working directory. ``offline=True`` requires every
     GitHub response to be in ``cache_dir`` (see scripts/refresh_cache.py).
-    """
-    # -- local repository ---------------------------------------------------
-    repo_dir = Path(repo_path) if repo_path is not None else Path(case.local_repo)
-    if not repo_dir.is_absolute():
-        repo_dir = Path.cwd() / repo_dir
-    if not repo_dir.exists():
-        raise CollectorError(
-            f"local repository for case '{case.name}' not found at {repo_dir}; "
-            f"clone it (e.g. git clone https://github.com/{case.repo} {repo_dir}) "
-            f"or pass repo_path="
-        )
-    repo = GitRepo(repo_dir)
 
-    # -- fix commit -----------------------------------------------------------
-    fix = repo.commit_info(case.fix_sha, max_diff_bytes=max_diff_bytes)
-    fix.url = f"https://github.com/{case.repo}/commit/{fix.sha}"
+    Issues-only cases (``case.fix_sha`` empty) skip the local repository and
+    SZZ entirely — no ``local_repo`` is required — and produce
+    ``Evidence.fix_commit = None`` with the timeline built from the issue
+    threads alone.
+    """
     notes: list[str] = []
-    if fix.diff.endswith(DIFF_TRUNCATED_MARKER):
-        notes.append("fix diff truncated at max_diff_bytes")
+    sources: list[str] = []
+
+    # -- local repository + fix commit (skipped for issues-only cases) -------
+    fix: CommitInfo | None = None
+    repo = None
+    if case.fix_sha:
+        repo_dir = Path(repo_path) if repo_path is not None else Path(case.local_repo)
+        if not repo_dir.is_absolute():
+            repo_dir = Path.cwd() / repo_dir
+        if not repo_dir.exists():
+            raise CollectorError(
+                f"local repository for case '{case.name}' not found at {repo_dir}; "
+                f"clone it (e.g. git clone https://github.com/{case.repo} {repo_dir}) "
+                f"or pass repo_path="
+            )
+        repo = GitRepo(repo_dir)
+        fix = repo.commit_info(case.fix_sha, max_diff_bytes=max_diff_bytes)
+        fix.url = f"https://github.com/{case.repo}/commit/{fix.sha}"
+        sources.append(f"git: {_display_path(repo_dir)}")
+        if fix.diff.endswith(DIFF_TRUNCATED_MARKER):
+            notes.append("fix diff truncated at max_diff_bytes")
+    else:
+        notes.append("issues-only case (no fix commit in repository data)")
 
     # -- issue threads (GitHub API, cached) -----------------------------------
     client = GitHubClient(case.repo, cache_dir=cache_dir, offline=offline)
@@ -111,8 +122,10 @@ def collect_case(
                 f"cache first: /usr/bin/python3.12 scripts/refresh_cache.py)",
             ) from exc
 
-    # -- introducer candidates --------------------------------------------------
-    candidates = szz.introducer_candidates(fix, repo, issues)
+    # -- introducer candidates (needs the fix commit + repo) --------------------
+    candidates: list = []
+    if fix is not None and repo is not None:
+        candidates = szz.introducer_candidates(fix, repo, issues)
 
     # -- timeline (repository facts only, sorted by date) -----------------------
     timeline: list[TimelineEvent] = []
@@ -146,18 +159,18 @@ def collect_case(
                 ref=f"candidate:{cand.short_sha}",
             )
         )
-    timeline.append(
-        TimelineEvent(
-            date=(fix.author_date or "")[:10],
-            kind="commit",
-            description=f"Fix commit {fix.short_sha}: {_snippet(fix.subject)}",
-            ref="fix",
+    if fix is not None:
+        timeline.append(
+            TimelineEvent(
+                date=(fix.author_date or "")[:10],
+                kind="commit",
+                description=f"Fix commit {fix.short_sha}: {_snippet(fix.subject)}",
+                ref="fix",
+            )
         )
-    )
     timeline.sort(key=lambda e: e.date)  # ISO dates sort correctly; stable
 
     # -- meta & evidence ---------------------------------------------------------
-    sources = [f"git: {_display_path(repo_dir)}"]
     if case.issues:
         sources.append(
             f"github-api: {'cached' if offline else 'live'} ({_display_path(cache_dir)})"

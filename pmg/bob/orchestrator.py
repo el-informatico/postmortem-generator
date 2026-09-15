@@ -166,6 +166,37 @@ class DeterministicOrchestrator:
         ev = self.evidence
         fix = ev.fix_commit
         cand = self._top_candidate()
+        if fix is None:
+            # Issues-only case: an ops/community incident reconstruction with
+            # no fix commit in repository data.
+            claims: list[Claim] = []
+            for issue in ev.issues:
+                claims.append(
+                    Claim(
+                        text=(
+                            f"Issue #{issue.number} (\"{issue.title}\", state "
+                            f"{issue.state}) documents this incident in "
+                            f"{ev.case.repo}."
+                        ),
+                        refs=[f"issue:{issue.number}"],
+                    )
+                )
+            if not claims:
+                return _red_no_evidence("summary")
+            body = (
+                f"Case **{ev.case.name}** in `{ev.case.repo}` is an "
+                f"operational/community incident reconstructed from the "
+                f"linked issue thread(s) only — no fix commit exists in the "
+                f"collected repository data, so there is no commit-level fix "
+                f"or introducer story to report. "
+                + " ".join(c.text for c in claims)
+                + " Impact and detection are not derivable from repository "
+                "data and are marked 'No evidence' in their sections."
+            )
+            return Section(
+                id="summary", title=SECTION_TITLES["summary"], badge="green",
+                body=body, claims=claims,
+            )
         claims = [
             Claim(
                 text=(
@@ -248,6 +279,36 @@ class DeterministicOrchestrator:
         ev = self.evidence
         fix = ev.fix_commit
         cand = self._top_candidate()
+        if fix is None:
+            # Issues-only case: degrade to an issue-thread-derived statement.
+            if not ev.issues:
+                return _red_no_evidence("root_cause")
+            claims = [
+                Claim(
+                    text=(
+                        f"No fix commit exists in the collected repository "
+                        f"data; the incident is documented in issue "
+                        f"#{issue.number} (\"{issue.title}\", state "
+                        f"{issue.state})."
+                    ),
+                    refs=[f"issue:{issue.number}"],
+                )
+                for issue in ev.issues
+            ]
+            body = (
+                "No fix commit exists in the collected repository data, so no "
+                "diff-based technical root cause can be reconstructed. What "
+                f"the linked issue thread(s) document for this incident: "
+                + "; ".join(
+                    f"#{i.number} \"{i.title}\" ({i.state})" for i in ev.issues
+                )
+                + ". This is an issue-thread-derived statement, not "
+                "commit-level causality."
+            )
+            return Section(
+                id="root_cause", title=SECTION_TITLES["root_cause"],
+                badge="yellow", body=body, claims=claims,
+            )
         claims: list[Claim] = [
             Claim(
                 text=(
@@ -307,6 +368,21 @@ class DeterministicOrchestrator:
 
     def _resolution(self) -> Section:
         fix = self.evidence.fix_commit
+        if fix is None:
+            # Issues-only case: honestly state there is no fix commit.
+            return Section(
+                id="resolution",
+                title=SECTION_TITLES["resolution"],
+                badge="red",
+                body=(
+                    f"{NO_EVIDENCE_PHRASE} — no fix commit in repository "
+                    "data. This case is an operational/community incident "
+                    "reconstructed from the linked issue thread(s); "
+                    "resolution is documented there, not in a repository "
+                    "commit, so this section makes no claims."
+                ),
+                claims=[],
+            )
         claims = [
             Claim(
                 text=(
@@ -338,7 +414,7 @@ class DeterministicOrchestrator:
         ev = self.evidence
         fix = ev.fix_commit
         claims: list[Claim] = []
-        tests = _test_files(fix.files)
+        tests = _test_files(fix.files) if fix is not None else []
         if tests:
             claims.append(
                 Claim(
@@ -362,15 +438,23 @@ class DeterministicOrchestrator:
                 )
             )
         if not claims:
+            if fix is None:
+                red_body = (
+                    f"{NO_EVIDENCE_PHRASE} of agreed follow-ups in "
+                    "repository data: there is no fix commit and no linked "
+                    "issue thread records agreed action items."
+                )
+            else:
+                red_body = (
+                    f"{NO_EVIDENCE_PHRASE} of agreed follow-ups in "
+                    "repository data: the fix commit adds no tests and no "
+                    "linked issue thread records agreed action items."
+                )
             return Section(
                 id="action_items",
                 title=SECTION_TITLES["action_items"],
                 badge="red",
-                body=(
-                    f"{NO_EVIDENCE_PHRASE} of agreed follow-ups in "
-                    "repository data: the fix commit adds no tests and no "
-                    "linked issue thread records agreed action items."
-                ),
+                body=red_body,
                 claims=[],
             )
         body = "Grounded follow-ups visible in the repository evidence:\n" + "\n".join(
@@ -384,8 +468,35 @@ class DeterministicOrchestrator:
     def _lessons(self) -> Section:
         ev = self.evidence
         cand = self._top_candidate()
-        fix_day = _parse_day(ev.fix_commit.author_date)
+        fix_day = (
+            _parse_day(ev.fix_commit.author_date)
+            if ev.fix_commit is not None
+            else None
+        )
         claims: list[Claim] = []
+        if ev.fix_commit is None:
+            # Issues-only case: no introducer→fix latency exists at all.
+            claims.append(
+                Claim(
+                    text=(
+                        "No fix commit exists in the repository data for "
+                        "this case, so no introducer-to-fix latency can be "
+                        "estimated (issues-only case)."
+                    ),
+                    refs=["case"],
+                )
+            )
+            body_note = (
+                "Open question: this operational/community incident has no "
+                "fix commit in repository data, so introducer-to-fix latency "
+                "is undefined — the linked issue thread(s) are the only "
+                "repository evidence for what happened and what was done "
+                "about it."
+            )
+            return Section(
+                id="lessons", title=SECTION_TITLES["lessons"], badge="yellow",
+                body=body_note, claims=claims,
+            )
         if cand is not None and fix_day is not None:
             cand_day = _parse_day(cand.author_date)
             claims.append(
@@ -448,6 +559,18 @@ class DeterministicOrchestrator:
             body=body_note, claims=claims,
         )
 
+    def _default_title(self) -> str:
+        """Title from the fix commit subject, or the issue thread for
+        issues-only cases (no fix commit in repository data)."""
+        ev = self.evidence
+        if ev.fix_commit is not None:
+            subject = ev.fix_commit.subject
+        elif ev.issues:
+            subject = ev.issues[0].title
+        else:
+            subject = ev.case.name
+        return f"Postmortem: {subject} ({ev.case.name})"
+
     # -- entry point ----------------------------------------------------------
 
     def generate(self) -> Postmortem:
@@ -467,7 +590,7 @@ class DeterministicOrchestrator:
         elapsed = time.monotonic() - start
         pm = Postmortem(
             case=self.evidence.case.name,
-            title=f"Postmortem: {self.evidence.fix_commit.subject} ({self.evidence.case.name})",
+            title=self._default_title(),
             generated_by=GENERATOR_DETERMINISTIC,
             sections=sections,
         )
@@ -558,7 +681,13 @@ def normalize_postmortem(
       evidence actually contains them (it never does for collector output).
     """
     case = str(data.get("case") or evidence.case.name)
-    title = str(data.get("title") or f"Postmortem: {evidence.fix_commit.subject}")
+    if evidence.fix_commit is not None:
+        fallback_title = f"Postmortem: {evidence.fix_commit.subject}"
+    elif evidence.issues:
+        fallback_title = f"Postmortem: {evidence.issues[0].title}"
+    else:
+        fallback_title = f"Postmortem: {evidence.case.name}"
+    title = str(data.get("title") or fallback_title)
     by_id: dict[str, Section] = {}
     stray_notes: list[str] = []
 
