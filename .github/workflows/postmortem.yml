@@ -1,0 +1,127 @@
+# Postmortem pipeline CI (piece 3 of postmortem-generator).
+#
+# There is no official IBM Bob GitHub Action (docs/research/ibm-bob-notes.md §3),
+# so this workflow drives OUR CLI (`bob-postmortem`, installed from this repo).
+# When the BOB_API_KEY secret is configured, pmg.bob shells out to
+# `bob run` inside the runner; auto mode degrades to the deterministic
+# generator when the key is absent — the job must NOT fail for that reason.
+#
+# Triggers:
+#   - workflow_dispatch: manual runs with inputs (case, subject repo, mode,
+#     offline).
+#   - push to main touching the pipeline itself: cheap smoke run — mode falls
+#     back to "deterministic" (no Bobcoin spend), the few GitHub API calls of
+#     the collector use the automatic GITHUB_TOKEN. data/cache is NOT
+#     committed, so a truly --offline push run would exit 3 (cache miss).
+#
+# Re-runs are idempotent: the subject repo clone is skipped when present and
+# every output file under eval-output/ is overwritten.
+
+name: postmortem
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: "Case config JSON path in this repo"
+        required: false
+        default: "data/cases/curl-cve-2023-38545.json"
+        type: string
+      subject_repo_url:
+        description: "Subject repository (the incident repo) to clone"
+        required: false
+        default: "https://github.com/curl/curl"
+        type: string
+      mode:
+        description: "Generation mode (auto = Bob when BOB_API_KEY set, else deterministic)"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - bob
+          - deterministic
+      offline:
+        description: "Never touch the network (needs a warm data/cache)"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "data/cases/**"
+      - "pmg/**"
+      - ".github/workflows/postmortem.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postmortem-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  postmortem:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history of the WORKFLOW repo: git history is our evidence base,
+      # needed as-is when the subject repo IS this repo. For the default curl
+      # case the subject repo is separate and cloned in the next step.
+      - name: Check out this repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The subject repository (where the incident happened). Skipped when
+      # already present so re-runs stay idempotent. On the push trigger the
+      # `inputs.*` context is empty and the default curl URL is used.
+      - name: Clone subject repository
+        run: |
+          SUBJECT_URL="${{ inputs.subject_repo_url || 'https://github.com/curl/curl' }}"
+          if [ ! -d .repos/curl/.git ]; then
+            git clone "$SUBJECT_URL" .repos/curl
+          else
+            echo ".repos/curl already present, skipping clone"
+          fi
+
+      # Python 3.12 with pip caching keyed off pyproject.toml (no other
+      # dependency files exist — the project is stdlib-only).
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install postmortem-generator
+        run: pip install -e .
+
+      # GITHUB_TOKEN is automatic and authenticates the collector's GitHub
+      # API calls; BOB_API_KEY is OPTIONAL — with auto mode an absent key
+      # simply degrades to the deterministic generator (exit 0). Only an
+      # explicit --mode bob run without a working key exits 4.
+      - name: Run postmortem pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOB_API_KEY: ${{ secrets.BOB_API_KEY }}
+        run: |
+          OFFLINE_FLAG=""
+          if [ "${{ inputs.offline }}" = "true" ]; then
+            OFFLINE_FLAG="--offline"
+          fi
+          # Push trigger: inputs.mode is empty -> "deterministic" keeps the
+          # smoke run cheap (no Bobcoin spend even if BOB_API_KEY is set).
+          bob-postmortem postmortem \
+            --case "${{ inputs.case || 'data/cases/curl-cve-2023-38545.json' }}" \
+            --local-repo .repos/curl \
+            --mode "${{ inputs.mode || 'deterministic' }}" \
+            --out eval-output/curl-cve-2023-38545 \
+            $OFFLINE_FLAG
+
+      # Upload even when the pipeline fails (exit 3/4/5) — the partial
+      # evidence/postmortem files make CI failures debuggable.
+      - name: Upload postmortem artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postmortem
+          path: eval-output/**
