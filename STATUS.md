@@ -80,6 +80,27 @@ curl CVE-2023-38545.**
 - [x] Triple validación pre-commit activa (`scripts/hooks/` — commit-msg + pre-commit +
       guard de contenido sensible; lista de tokens local bajo `.git/`, jamás trackeada).
 
+## B6 — 2026-09-15 · Refuerzo pre-sprint (corpus + UI + docs)
+- [x] **Corpus 3 casos reales**: curl (flagship, introducer top-1 exacto) + **log4j
+      CVE-2021-44228** (fix `c77b3cb393` = merge PR #608; introducer VERIFICADO
+      `f1a0cac60f` "LOG4J2-313 Add JNDILookup" 2013-07-18 vía `git log --follow
+      --diff-filter=A`; el piso SZZ-lite honestamente NO lo encuentra — culpa a refactors
+      2017 de JndiManager, ciego documentado del método) + **GitLab 2017** (incidente de
+      ops SIN commits de fix: camino issues-only; issue #1684 vive en gitlab.com
+      gitlab-com/infrastructure — cache sembrada a mano desde GitLab API v4, documentado).
+      Ground truth cita-fiel por caso (`data/ground_truth/<caso>/`), pipelines reales
+      corridos offline (`eval-output/`), métricas por caso (honesty ✓ y linkage 1.0 en
+      los tres).
+- [x] **Soporte issues-only** en contracts/collector/bob/eval (fix_sha opcional, secciones
+      resolution/root_cause degradan honestamente, invariant de linkage 1.0 se mantiene).
+- [x] **UI delgada** (`scripts/build_ui.py` → `ui/index.html`, single-file offline 616 KB):
+      timeline interactiva con deep-links a commits/issues reales, lado-a-lado generado
+      vs humano con badges y chips de evidencia, tabla de métricas, switcher de 3 casos.
+- [x] **Video script** (`docs/video-script.md`): 4:20, 7 beats, 1.335 días verificados
+      commit→fix, checklist de session summaries de Bob, versión one-take de respaldo.
+- [x] Suite completa: **155 tests, 0 fallos**. README con corpus + UI. Commits por bloque
+      vía hooks. Sin push (publicación = gate aparte del usuario).
+
 ## Checklist arranque del sprint (vie 25-sep, antes de comprometer horas)
 - Re-verificar `docs/research/hackathon-status-2026-09-15.md` (jueces/tracks, 2º challenge,
   reglas, política de pre-existencia).

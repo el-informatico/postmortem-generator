@@ -17,7 +17,11 @@ Everything is demonstrated and evaluated against a **real, human-written postmor
 overflow introduced by `4a4b63daaa` (2020-02-14, shipped in 7.69.0) and fixed by
 `fb4415d8aee6` (Jay Satiro, 2023-10-11, released in 8.4.0), as narrated by Daniel Stenberg
 in ["How I made a heap overflow in curl"](https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/).
-No synthetic data anywhere in the demo or evaluation.
+No synthetic data anywhere in the demo or evaluation. Two further **real cases** extend the
+corpus: **log4j CVE-2021-44228** (fix = merge of [PR #608](https://github.com/apache/logging-log4j2/pull/608),
+introducer verified as `f1a0cac60f` "LOG4J2-313 - Add JNDILookup", 2013-07-18) and the
+**GitLab 2017 database outage** (an operational incident with *no fix commit* — the
+issues-only honesty path).
 
 ## Architecture (anti-prompt-wrapper)
 
@@ -91,6 +95,21 @@ Repo-derivable metrics (linkage, honesty, grounded timeline) are already at ceil
 any AI. Narrative metrics (root cause, action items, line agreement) are the explicit target
 of the Bob Agent-mode sessions during the sprint — this table is the baseline they must beat.
 
+### Secondary cases (real, quote-faithful ground truth)
+
+| Case | Kind | Pipeline result (deterministic floor) |
+|---|---|---|
+| [log4j CVE-2021-44228](data/ground_truth/log4j-cve-2021-44228/) | code (JVM) | honesty ✓ · linkage 1.0 · introducer top-1 ✗ — SZZ-lite honestly blames later JNDI refactors, not the 2013 component introduction: the floor's known blind spot, visible by design |
+| [GitLab 2017 DB outage](data/ground_truth/gitlab-2017-db-outage/) | ops, no code | honesty ✓ · linkage 1.0 · timeline precision 1.0 · resolution section red "No evidence — no fix commit" — reconstructs from the issue thread instead of inventing code |
+
+## Viewer UI
+
+`ui/index.html` is a **single-file, offline** viewer (no CDNs, no build tools — rebuild with
+`python3 scripts/build_ui.py`): interactive **timeline** with deep links to the real commits
+and issues (fix in green, top introducer candidate in red), **side-by-side** generated
+postmortem (per-section badges + evidence chips) vs the human original, and the metrics
+table per case, with a case switcher for the whole corpus. Open it directly in a browser.
+
 ## Quick start
 
 ```bash
@@ -106,6 +125,9 @@ bob-postmortem postmortem --case data/cases/curl-cve-2023-38545.json \
 # or the trio form
 bob-postmortem postmortem --repo curl/curl --issue 4907 --fix-sha fb4415d8aee6 \
     --local-repo .repos/curl
+
+# the viewer (single-file, opens offline in any browser)
+python3 scripts/build_ui.py && xdg-open ui/index.html
 ```
 
 Outputs: `evidence.json` (piece 1), `postmortem.md` (+ `.json`) with badges and per-claim
@@ -120,13 +142,14 @@ pmg/collector/     piece 1 — GitHub API (cached) · git CLI · SZZ-lite
 pmg/bob/           piece 2 — roles · SRE template · linkage · orchestrators
 pmg/shell/         piece 3 — `bob postmortem` CLI (console script bob-postmortem)
 pmg/eval/          piece 4 — ground truth · comparison heuristics · report
+scripts/build_ui.py + ui/index.html   the offline single-file viewer
 .bob/              Bob-side integration: slash command · custom role modes · skill
 .github/workflows/postmortem.yml     CI step (workflow_dispatch + push smoke)
-data/cases/        case configs (curl-cve-2023-38545.json)
-data/ground_truth/ human postmortem material (cached with attribution; see its NOTES)
+data/cases/        case configs (curl CVE-2023-38545 · log4j CVE-2021-44228 · GitLab 2017)
+data/ground_truth/ human postmortem material per case (cached with attribution; see NOTES)
 docs/research/     verified research notes (IBM Bob integration, hackathon status, case)
-docs/CONTRACTS.md  the cross-piece interface contract
-eval-output/       committed pipeline output for the real curl case
+docs/CONTRACTS.md  the cross-piece interface contract · docs/UI.md · docs/video-script.md
+eval-output/       committed pipeline output for the real cases
 STATUS.md          build log (pre-sprint → sprint)
 ```
 
