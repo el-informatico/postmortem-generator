@@ -1,0 +1,161 @@
+{
+  "case": "curl-cve-2023-38545",
+  "cve": "CVE-2023-38545",
+  "summary": "This flaw makes curl overflow a heap based buffer in the SOCKS5 proxy handshake. Due to a bug, the local variable that means \"let the host resolve the name\" could get the wrong value during a slow SOCKS5 handshake, and contrary to the intention, copy the too long hostname to the target buffer instead of copying only the resolved address there.",
+  "severity": {
+    "cvss": null,
+    "quoted": "Severity: High"
+  },
+  "root_cause": {
+    "statement": "The SOCKS5 proxy handshake code was converted from a blocking function into a non-blocking state machine (commit 4a4b63daaa, February 2020). The local boolean socks5_resolve_local is re-initialized from the proxy type at the top of the state machine on every invocation, so when the handshake stalled and the function was re-entered, a hostname longer than 255 bytes that had already triggered a switch to local resolving was again treated as remotely resolved, and the too long hostname was copied with memcpy() into the heap-based download buffer reused for SOCKS negotiation, overflowing it.",
+    "quote": "Due to a bug, the local variable that means \"let the host resolve the name\" could get the wrong value during a slow SOCKS5 handshake, and contrary to the intention, copy the too long hostname to the target buffer instead of copying only the resolved address there.",
+    "source": "https://curl.se/docs/CVE-2023-38545.html"
+  },
+  "introducer": {
+    "full_sha": "4a4b63daaa01ef59b131d91e8e6e6dfe275c0f08",
+    "short_sha": "4a4b63daaa",
+    "subject": "socks: make the connect phase non-blocking",
+    "author": "Daniel Stenberg",
+    "author_date": "2020-02-14",
+    "closes_issue": 4907,
+    "released_in": {
+      "version": "7.69.0",
+      "date": "2020-03-04",
+      "source": "https://api.github.com/repos/curl/curl/releases/tags/curl-7_69_0"
+    }
+  },
+  "fix": {
+    "full_sha": "fb4415d8aee6c1045be932a34fe6107c2f5ed147",
+    "short_sha": "fb4415d8aee6",
+    "subject": "socks: return error if hostname too long for remote resolve",
+    "author_date": "2023-10-11",
+    "released_in": {
+      "version": "8.4.0",
+      "date": "2023-10-11",
+      "source": "https://curl.se/docs/CVE-2023-38545.html"
+    }
+  },
+  "detection": {
+    "who": "Jay Satiro",
+    "how": "Privately reported to the curl project via HackerOne (https://hackerone.com/reports/2187833); Satiro also analyzed and patched it (\"This issue was reported, analyzed and patched by Jay Satiro.\"). The detailed method by which Satiro found it is not stated in the fetched sources (the blog points to the HackerOne report for that story).",
+    "date": "2023-09-30",
+    "quote": "This issue was reported to the curl project on September 30, 2023.",
+    "source": "https://curl.se/docs/CVE-2023-38545.html"
+  },
+  "impact": {
+    "quotes": [
+      "This problem is the worst security problem found in curl in a long time. We set it to severity **HIGH**.",
+      "For an overflow to happen it needs a slow enough SOCKS5 handshake to trigger the local variable bug, and the client using a hostname longer than the download buffer. Perhaps with a malicious HTTPS server doing a redirect to an especially crafted URL.",
+      "Typical server latency is likely \"slow\" enough to trigger this bug without an attacker needing to influence it by DoS or SOCKS server control.",
+      "An overflow is only possible in applications that do not set `CURLOPT_BUFFERSIZE` or set it smaller than 65541.",
+      "In hindsight, shipping a heap overflow in code installed in over twenty billion instances is not an experience I would recommend."
+    ],
+    "sources": [
+      "https://curl.se/docs/CVE-2023-38545.html",
+      "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+    ],
+    "not_derivable_from_git": [
+      "user impact",
+      "telemetry",
+      "detection"
+    ]
+  },
+  "timeline": [
+    {
+      "date": "2020-02-11",
+      "event": "PR #4907 \"socks: make the connect phase non-blocking\" opened by bagder",
+      "source": "github-api"
+    },
+    {
+      "date": "2020-02-14",
+      "event": "Introducer commit 4a4b63daaa01ef59b131d91e8e6e6dfe275c0f08 authored by Daniel Stenberg (author date 2020-02-14T15:16:54Z); blog: \"On February 14 2020 I landed the main commit for this change in master.\"",
+      "source": "github-api"
+    },
+    {
+      "date": "2020-02-16",
+      "event": "Introducer commit pushed to master (committer date 2020-02-16T23:08:48Z); PR #4907 closed (closed_at 2020-02-16T23:09:09Z, unmerged)",
+      "source": "github-api"
+    },
+    {
+      "date": "2020-03-04",
+      "event": "curl 7.69.0 released (GitHub release published_at 2020-03-04T06:48:56Z; curl.se releases table: \"Mar 4 2020\") - first release shipping the vulnerable code",
+      "source": "github-api"
+    },
+    {
+      "date": "2023-09-30",
+      "event": "Issue reported to the curl project by Jay Satiro (blog: reported, analyzed and patched by Jay Satiro)",
+      "source": "advisory"
+    },
+    {
+      "date": "2023-10-03",
+      "event": "curl project contacted distros@openwall",
+      "source": "advisory"
+    },
+    {
+      "date": "2023-10-11",
+      "event": "Fix commit fb4415d8aee6c1045be932a34fe6107c2f5ed147 authored by Jay Satiro, committed by Daniel Stenberg (both 2023-10-11T05:34:19Z)",
+      "source": "github-api"
+    },
+    {
+      "date": "2023-10-11",
+      "event": "Advisory published and curl 8.4.0 released (GitHub release published_at 2023-10-11T06:28:45Z); advisory states libcurl 8.4.0 was released on October 11 2023, coordinated with the publication of this advisory",
+      "source": "advisory"
+    }
+  ],
+  "action_items": [
+    {
+      "item": "A - Upgrade curl to version 8.4.0",
+      "source": "https://curl.se/docs/CVE-2023-38545.html"
+    },
+    {
+      "item": "B - Apply the patch to your local version",
+      "source": "https://curl.se/docs/CVE-2023-38545.html"
+    },
+    {
+      "item": "C - Do not use `CURLPROXY_SOCKS5_HOSTNAME` proxies with curl",
+      "source": "https://curl.se/docs/CVE-2023-38545.html"
+    },
+    {
+      "item": "D - Do not set a proxy environment variable to socks5h://",
+      "source": "https://curl.se/docs/CVE-2023-38545.html"
+    },
+    {
+      "item": "Regression test added for the exact scenario (tests/data/test728, added in fix commit fb4415d8aee6c1): \"We now also have a dedicated test case for this scenario.\"",
+      "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+    },
+    {
+      "item": "Better tests could have caught it: \"It could have been detected with a better set of tests.\"",
+      "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+    },
+    {
+      "item": "Static analysis alone was insufficient here: \"We repeatedly run several static code analyzers on the code and none of them have spotted any problems in this function.\"",
+      "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+    },
+    {
+      "item": "Longer-term memory-safety direction: \"allow, use and support more dependencies written in memory-safe languages and ... potentially and gradually replace parts of curl piecemeal\"",
+      "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+    },
+    {
+      "item": "Bug bounty paid via Internet Bug Bounty (HackerOne): \"This is the largest curl bug-bounty paid to date: **4,660 USD** (plus 1,165 USD to the curl project, as per IBB policy)\"",
+      "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+    }
+  ],
+  "duration_in_days_undetected": {
+    "value": 1315,
+    "quote": "Yes, it truly aches having to accept the fact that I did this mistake without noticing and that the flaw then remained undiscovered in code for 1315 days.",
+    "source": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/"
+  },
+  "sources": {
+    "advisory": "https://curl.se/docs/CVE-2023-38545.html",
+    "blog": "https://daniel.haxx.se/blog/2023/10/11/how-i-made-a-heap-overflow-in-curl/",
+    "commits_api": [
+      "https://api.github.com/repos/curl/curl/commits/4a4b63daaa",
+      "https://api.github.com/repos/curl/curl/commits/fb4415d8aee6c1",
+      "https://api.github.com/repos/curl/curl/commits/fb4415d8aee6c1/pulls"
+    ],
+    "issue_api": [
+      "https://api.github.com/repos/curl/curl/issues/4907",
+      "https://api.github.com/repos/curl/curl/issues/4907/comments"
+    ]
+  }
+}
