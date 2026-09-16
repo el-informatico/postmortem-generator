@@ -28,12 +28,17 @@
       "id": "timeline",
       "title": "Timeline",
       "badge": "green",
-      "body": "- **2017-04-28** \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress *(kind: issue, ref: event:0, issue:1684)*",
+      "body": "- **2017-04-28** \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress\n- **2018-01-22** \u2014 Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)",
       "claims": [
         {
           "text": "2017-04-28 \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress",
           "refs": [
-            "event:0",
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "2018-01-22 \u2014 Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)",
+          "refs": [
             "issue:1684"
           ]
         }
@@ -71,10 +76,76 @@
       "id": "action_items",
       "title": "Action Items",
       "badge": "yellow",
-      "body": "Grounded follow-ups visible in the repository evidence:\n- Track follow-up in the linked issue (#1684) which is currently closed.",
+      "body": "Grounded follow-ups visible in the repository evidence:\n- Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581\n- Follow-up recorded in the tracking issue (#1684): Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)\n- Follow-up recorded in the tracking issue (#1684): Prometheus monitoring for backups (#1095)\n- Follow-up recorded in the tracking issue (#1684): Set PostgreSQL's max_connections to a sane value (#1096)\n- Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)\n- Follow-up recorded in the tracking issue (#1684): Hourly LVM snapshots of the production databases (#1098)\n- Follow-up recorded in the tracking issue (#1684): Azure disk snapshots of production databases (#1099)\n- Follow-up recorded in the tracking issue (#1684): Move staging to the ARM environment (#1100)\n- Follow-up recorded in the tracking issue (#1684): Recover production replica(s) (#1101)\n- Follow-up recorded in the tracking issue (#1684): Automated testing of recovering PostgreSQL database backups (#1102)\n- Follow-up recorded in the tracking issue (#1684): Improve PostgreSQL replication documentation/runbooks (#1103)\n- Follow-up recorded in the tracking issue (#1684): Investigate pgbarman for creating PostgreSQL backups (#1105)",
       "claims": [
         {
-          "text": "Track follow-up in the linked issue (#1684) which is currently closed.",
+          "text": "Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Prometheus monitoring for backups (#1095)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Set PostgreSQL's max_connections to a sane value (#1096)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Hourly LVM snapshots of the production databases (#1098)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Azure disk snapshots of production databases (#1099)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Move staging to the ARM environment (#1100)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Recover production replica(s) (#1101)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Automated testing of recovering PostgreSQL database backups (#1102)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Improve PostgreSQL replication documentation/runbooks (#1103)",
+          "refs": [
+            "issue:1684"
+          ]
+        },
+        {
+          "text": "Follow-up recorded in the tracking issue (#1684): Investigate pgbarman for creating PostgreSQL backups (#1105)",
           "refs": [
             "issue:1684"
           ]
@@ -96,12 +167,11 @@
       ]
     }
   ],
-  "markdown": "# Postmortem: [meta] Listing all issues related to Jan 31st outage to track their progress (gitlab-2017-db-outage)\n\n> Generated by postmortem-generator \u2014 every claim links to repository evidence; sections without evidence say so.\n>\n> Generator: deterministic-fallback \u00b7 Case: gitlab-2017-db-outage\n\n## Summary\n\n\ud83d\udfe2 green \u2014 every claim linked to evidence\n\nCase **gitlab-2017-db-outage** in `gitlab-com/infrastructure` is an operational/community incident reconstructed from the linked issue thread(s) only \u2014 no fix commit exists in the collected repository data, so there is no commit-level fix or introducer story to report. Issue #1684 (\"[meta] Listing all issues related to Jan 31st outage to track their progress\", state closed) documents this incident in gitlab-com/infrastructure. Impact and detection are not derivable from repository data and are marked 'No evidence' in their sections.\n\n- [issue:1684] Issue #1684 (\"[meta] Listing all issues related to Jan 31st outage to track their progress\", state closed) documents this incident in gitlab-com/infrastructure.\n\n## Impact\n\n\ud83d\udd34 red \u2014 no evidence for this section\n\nNo evidence in repository data \u2014 user impact requires incident telemetry, alerts or user reports, none of which are captured in git history or the linked issue thread. Any number of affected users, severity rating or outage duration stated here would be invention, so this section makes no claims.\n\n## Timeline\n\n\ud83d\udfe2 green \u2014 every claim linked to evidence\n\n- **2017-04-28** \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress *(kind: issue, ref: event:0, issue:1684)*\n\n- [event:0, issue:1684] 2017-04-28 \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress\n\n## Root Cause\n\n\ud83d\udfe1 yellow \u2014 grounded, some claims unreferenced\n\nNo fix commit exists in the collected repository data, so no diff-based technical root cause can be reconstructed. What the linked issue thread(s) document for this incident: #1684 \"[meta] Listing all issues related to Jan 31st outage to track their progress\" (closed). This is an issue-thread-derived statement, not commit-level causality.\n\n- [issue:1684] No fix commit exists in the collected repository data; the incident is documented in issue #1684 (\"[meta] Listing all issues related to Jan 31st outage to track their progress\", state closed).\n\n## Detection\n\n\ud83d\udd34 red \u2014 no evidence for this section\n\nNo evidence in repository data \u2014 how this bug was found (who reported it, through which channel, and when) is not recorded in the git history or the linked issue thread. A detection story would have to come from the security advisory or disclosure report, which are outside the collected repository evidence.\n\n## Resolution and Recovery\n\n\ud83d\udd34 red \u2014 no evidence for this section\n\nNo evidence \u2014 no fix commit in repository data. This case is an operational/community incident reconstructed from the linked issue thread(s); resolution is documented there, not in a repository commit, so this section makes no claims.\n\n## Action Items\n\n\ud83d\udfe1 yellow \u2014 grounded, some claims unreferenced\n\nGrounded follow-ups visible in the repository evidence:\n- Track follow-up in the linked issue (#1684) which is currently closed.\n\n- [issue:1684] Track follow-up in the linked issue (#1684) which is currently closed.\n\n## Lessons Learned\n\n\ud83d\udfe1 yellow \u2014 grounded, some claims unreferenced\n\nOpen question: this operational/community incident has no fix commit in repository data, so introducer-to-fix latency is undefined \u2014 the linked issue thread(s) are the only repository evidence for what happened and what was done about it.\n\n- [case] No fix commit exists in the repository data for this case, so no introducer-to-fix latency can be estimated (issues-only case).\n",
+  "markdown": "# Postmortem: [meta] Listing all issues related to Jan 31st outage to track their progress (gitlab-2017-db-outage)\n\n> Generated by postmortem-generator \u2014 every claim links to repository evidence; sections without evidence say so.\n>\n> Generator: deterministic-fallback \u00b7 Case: gitlab-2017-db-outage\n\n## Summary\n\n\ud83d\udfe2 green \u2014 every claim linked to evidence\n\nCase **gitlab-2017-db-outage** in `gitlab-com/infrastructure` is an operational/community incident reconstructed from the linked issue thread(s) only \u2014 no fix commit exists in the collected repository data, so there is no commit-level fix or introducer story to report. Issue #1684 (\"[meta] Listing all issues related to Jan 31st outage to track their progress\", state closed) documents this incident in gitlab-com/infrastructure. Impact and detection are not derivable from repository data and are marked 'No evidence' in their sections.\n\n- [issue:1684] Issue #1684 (\"[meta] Listing all issues related to Jan 31st outage to track their progress\", state closed) documents this incident in gitlab-com/infrastructure.\n\n## Impact\n\n\ud83d\udd34 red \u2014 no evidence for this section\n\nNo evidence in repository data \u2014 user impact requires incident telemetry, alerts or user reports, none of which are captured in git history or the linked issue thread. Any number of affected users, severity rating or outage duration stated here would be invention, so this section makes no claims.\n\n## Timeline\n\n\ud83d\udfe2 green \u2014 every claim linked to evidence\n\n- **2017-04-28** \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress\n- **2018-01-22** \u2014 Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)\n\n- [issue:1684] 2017-04-28 \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress\n- [issue:1684] 2018-01-22 \u2014 Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)\n\n## Root Cause\n\n\ud83d\udfe1 yellow \u2014 grounded, some claims unreferenced\n\nNo fix commit exists in the collected repository data, so no diff-based technical root cause can be reconstructed. What the linked issue thread(s) document for this incident: #1684 \"[meta] Listing all issues related to Jan 31st outage to track their progress\" (closed). This is an issue-thread-derived statement, not commit-level causality.\n\n- [issue:1684] No fix commit exists in the collected repository data; the incident is documented in issue #1684 (\"[meta] Listing all issues related to Jan 31st outage to track their progress\", state closed).\n\n## Detection\n\n\ud83d\udd34 red \u2014 no evidence for this section\n\nNo evidence in repository data \u2014 how this bug was found (who reported it, through which channel, and when) is not recorded in the git history or the linked issue thread. A detection story would have to come from the security advisory or disclosure report, which are outside the collected repository evidence.\n\n## Resolution and Recovery\n\n\ud83d\udd34 red \u2014 no evidence for this section\n\nNo evidence \u2014 no fix commit in repository data. This case is an operational/community incident reconstructed from the linked issue thread(s); resolution is documented there, not in a repository commit, so this section makes no claims.\n\n## Action Items\n\n\ud83d\udfe1 yellow \u2014 grounded, some claims unreferenced\n\nGrounded follow-ups visible in the repository evidence:\n- Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581\n- Follow-up recorded in the tracking issue (#1684): Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)\n- Follow-up recorded in the tracking issue (#1684): Prometheus monitoring for backups (#1095)\n- Follow-up recorded in the tracking issue (#1684): Set PostgreSQL's max_connections to a sane value (#1096)\n- Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)\n- Follow-up recorded in the tracking issue (#1684): Hourly LVM snapshots of the production databases (#1098)\n- Follow-up recorded in the tracking issue (#1684): Azure disk snapshots of production databases (#1099)\n- Follow-up recorded in the tracking issue (#1684): Move staging to the ARM environment (#1100)\n- Follow-up recorded in the tracking issue (#1684): Recover production replica(s) (#1101)\n- Follow-up recorded in the tracking issue (#1684): Automated testing of recovering PostgreSQL database backups (#1102)\n- Follow-up recorded in the tracking issue (#1684): Improve PostgreSQL replication documentation/runbooks (#1103)\n- Follow-up recorded in the tracking issue (#1684): Investigate pgbarman for creating PostgreSQL backups (#1105)\n\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Prometheus monitoring for backups (#1095)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Set PostgreSQL's max_connections to a sane value (#1096)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Hourly LVM snapshots of the production databases (#1098)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Azure disk snapshots of production databases (#1099)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Move staging to the ARM environment (#1100)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Recover production replica(s) (#1101)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Automated testing of recovering PostgreSQL database backups (#1102)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Improve PostgreSQL replication documentation/runbooks (#1103)\n- [issue:1684] Follow-up recorded in the tracking issue (#1684): Investigate pgbarman for creating PostgreSQL backups (#1105)\n\n## Lessons Learned\n\n\ud83d\udfe1 yellow \u2014 grounded, some claims unreferenced\n\nOpen question: this operational/community incident has no fix commit in repository data, so introducer-to-fix latency is undefined \u2014 the linked issue thread(s) are the only repository evidence for what happened and what was done about it.\n\n- [case] No fix commit exists in the repository data for this case, so no introducer-to-fix latency can be estimated (issues-only case).\n",
   "meta": {
-    "generated_at": "2026-09-15T19:02:34+00:00",
+    "generated_at": "2026-09-16T00:15:27+00:00",
     "wall_clock_seconds": 0.0001,
     "generator": "deterministic-fallback",
-    "evidence_notes": "issues-only case (no fix commit in repository data)",
-    "fallback_reason": "bob binary not found"
+    "evidence_notes": "issues-only case (no fix commit in repository data)"
   }
 }

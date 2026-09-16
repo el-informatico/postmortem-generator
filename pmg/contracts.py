@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -22,6 +23,33 @@ from typing import Any, Optional
 # ---------------------------------------------------------------------------
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
+
+_UTC_STAMP = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def utc_iso(iso: str) -> str:
+    """Normalize an ISO-8601 timestamp to UTC (``...Z``).
+
+    Git emits author/committer dates with the original UTC offset (e.g.
+    ``2020-02-17T00:08:48+01:00``) while the GitHub API always answers in
+    UTC — normalizing both to UTC keeps day-level comparisons (timeline
+    ordering, push-vs-close merging) from drifting across timezones.
+    Unparseable input is returned unchanged; empty stays empty.
+    """
+    if not iso:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    except ValueError:
+        return iso
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).strftime(_UTC_STAMP)
+
+
+def utc_date(iso: str) -> str:
+    """UTC day (YYYY-MM-DD) of an ISO-8601 timestamp; ``""`` when empty."""
+    return utc_iso(iso)[:10]
 
 
 def normalize_tokens(text: str) -> set[str]:
@@ -128,6 +156,8 @@ class CommitInfo:
     files: list[str]
     diff: str           # `git show` unified diff (may be truncated by caller)
     url: str = ""       # GitHub commit URL when repo is on GitHub
+    committer_date: str = ""  # ISO-8601 commit date (when it landed); the
+                        # author→committer gap is the review/merge latency
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -163,6 +193,9 @@ class IssueThread:
     body: str
     comments: list[IssueComment] = field(default_factory=list)
     url: str = ""
+    closed_at: str = ""         # ISO-8601; empty while open
+    merged_at: str = ""         # ISO-8601; set only for merged pull requests
+    is_pull_request: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -178,6 +211,9 @@ class IssueThread:
             body=d["body"],
             comments=[IssueComment.from_dict(c) for c in d.get("comments", [])],
             url=d.get("url", ""),
+            closed_at=d.get("closed_at", "") or "",
+            merged_at=d.get("merged_at", "") or "",
+            is_pull_request=bool(d.get("is_pull_request", False)),
         )
 
 
@@ -199,6 +235,7 @@ class IntroducerCandidate:
     score: float        # 0..1 combined confidence
     detail: dict[str, Any] = field(default_factory=dict)
     # detail keys (informational): blamed_lines, pickaxe_string, linked_issue
+    committer_date: str = ""  # ISO-8601 commit date (when it landed)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -226,6 +263,28 @@ class TimelineEvent:
 
 
 @dataclass
+class ReleaseInfo:
+    """First git tag containing a given commit — i.e. the release that
+    started shipping it. Derived offline from local tags
+    (``git tag --contains --sort=version:refname``); no GitHub release
+    metadata, no network, no invention (empty when the repo has no tags)."""
+
+    tag: str            # git tag name, e.g. "curl-8_4_0" / "rel/2.15.0"
+    version: str        # display version, e.g. "8.4.0" (tag if unparseable)
+    date: str           # ISO-8601 date of the tag (tagger/commit date)
+    contains_sha: str   # full sha the release was computed for
+    role: str           # "fix" | "introducer-candidate"
+    url: str = ""       # GitHub tag/release URL when repo is on GitHub
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "ReleaseInfo":
+        return cls(**d)
+
+
+@dataclass
 class Evidence:
     """Everything the deterministic collector could establish. No AI, no
     invention: fields with no data stay empty, and the postmortem generator
@@ -241,6 +300,7 @@ class Evidence:
     issues: list[IssueThread] = field(default_factory=list)
     introducer_candidates: list[IntroducerCandidate] = field(default_factory=list)
     timeline: list[TimelineEvent] = field(default_factory=list)
+    releases: list[ReleaseInfo] = field(default_factory=list)
     meta: dict[str, Any] = field(default_factory=dict)
     # meta keys: collected_at, offline (bool), sources (list[str]), notes
 
@@ -255,6 +315,7 @@ class Evidence:
             for k in range(len(issue.comments)):
                 ids.add(f"issue:{issue.number}#comment:{k}")
         ids.update(f"event:{i}" for i in range(len(self.timeline)))
+        ids.update(f"release:{r.tag}" for r in self.releases)
         return ids
 
     # -- persistence --------------------------------------------------------
@@ -267,6 +328,7 @@ class Evidence:
             "issues": [i.to_dict() for i in self.issues],
             "introducer_candidates": [c.to_dict() for c in self.introducer_candidates],
             "timeline": [e.to_dict() for e in self.timeline],
+            "releases": [r.to_dict() for r in self.releases],
             "meta": self.meta,
         }
 
@@ -285,6 +347,7 @@ class Evidence:
                 for c in d.get("introducer_candidates", [])
             ],
             timeline=[TimelineEvent.from_dict(e) for e in d.get("timeline", [])],
+            releases=[ReleaseInfo.from_dict(r) for r in d.get("releases", [])],
             meta=d.get("meta", {}),
         )
 

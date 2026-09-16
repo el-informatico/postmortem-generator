@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -37,6 +38,8 @@ from pmg.contracts import (
     Postmortem,
     SECTION_IDS,
     Section,
+    utc_date,
+    utc_iso,
 )
 from pmg.bob.linkage import validate_linkage
 from pmg.bob.roles import (
@@ -93,6 +96,192 @@ def _parse_day(iso: str) -> date | None:
         return date.fromisoformat(_date_part(iso))
     except ValueError:
         return None
+
+
+def _snippet(text: str, width: int = 100) -> str:
+    """Collapse whitespace and truncate to one line (collector parity)."""
+    single = " ".join((text or "").split())
+    return single if len(single) <= width else single[: width - 3] + "..."
+
+
+def _push_day(commit) -> str | None:
+    """Committer-date day (UTC) of *commit* when it differs from the author
+    day (the review/merge latency worth a timeline line); else None."""
+    day = utc_date(getattr(commit, "committer_date", "") or "")
+    if day and day != utc_date(commit.author_date or ""):
+        return day
+    return None
+
+
+_DIFF_STRING_RE = re.compile(r'"([^"\\]{3,})"')
+
+
+def _diff_message_strings(diff: str, limit: int = 2) -> list[tuple[str, str]]:
+    """Human-readable messages quoted in the changed (+/-) lines of *diff*.
+
+    These are the diff's own words for what was wrong — error/info strings
+    the code prints. Consecutive string literals are joined only when the
+    first ends with a space (C/Java split-string continuation, e.g.
+    ``"...hostnames of "`` + ``"length > 255"``); separate call arguments
+    stay separate messages. A message counts when it has >= 4 words.
+    Returns ``(sign, message)`` tuples — ``"+"`` what the fix now says,
+    ``"-"`` what the vulnerable code used to say — added lines first.
+    """
+    added: list[tuple[str, str]] = []
+    removed: list[tuple[str, str]] = []
+
+    def _flush(sign: str, chunks: list[str]) -> None:
+        messages: list[str] = []
+        for chunk in chunks:
+            if messages and messages[-1].endswith(" "):
+                messages[-1] += chunk
+            else:
+                messages.append(chunk)
+        for message in messages:
+            message = " ".join(message.split())
+            if len(message.split()) >= 4 and message not in [
+                m for _, m in added + removed
+            ]:
+                (added if sign == "+" else removed).append((sign, message))
+
+    current_sign = ""
+    chunks: list[str] = []
+    for line in (diff or "").splitlines():
+        if line.startswith(("+++", "---")):
+            continue
+        sign = line[0] if line[:1] in "+-" else ""
+        if sign and sign == current_sign:
+            chunks += _DIFF_STRING_RE.findall(line)
+        else:
+            _flush(current_sign, chunks)
+            if sign:
+                current_sign, chunks = sign, _DIFF_STRING_RE.findall(line)
+            else:
+                current_sign, chunks = "", []
+    _flush(current_sign, chunks)
+    return (added + removed)[:limit]
+
+
+_TAG_PROJECT_RE = re.compile(r"^([a-z][a-z0-9]*)-(?=\d)")
+
+
+def _tag_project(tag: str) -> str:
+    """Project prefix of a version tag ('' when none) — collector parity:
+    ``curl-7_69_0`` → ``curl``, ``rel/2.15.0`` → ``''``."""
+    name = tag.rsplit("/", 1)[-1]
+    name = re.sub(r"^v(?=\d)", "", name)
+    match = _TAG_PROJECT_RE.match(name)
+    return match.group(1) if match else ""
+
+
+_CHECKLIST_ITEM_RE = re.compile(r"^\s*-\s+(.+)$")
+_CHECKLIST_REF_RE = re.compile(
+    r"\(#\d+\)|https?://\S+/issues/\d+"
+)
+
+# commit-message trailer lines (Bug:/Fixes:/Closes:/Signed-off-by: ...)
+_TRAILER_RE = re.compile(r"^[A-Z][A-Za-z0-9-]+:\s")
+_IMPERATIVE_RE = re.compile(
+    r"^(restrict|limit|disable|remove|block|prevent|enable|require|"
+    r"validate|update|upgrade|add|use|fix)\b", re.I
+)
+
+
+def _fix_message_segments(message: str) -> list[str]:
+    """Clean prose segments of a commit message body (subject excluded).
+
+    Paragraphs are split into sentences; bullet lines (``* `` / ``- ``)
+    count as one segment each; trailer lines (``Bug:`` / ``Fixes:`` /
+    ``Signed-off-by:`` ...) are dropped. These segments are the fix
+    author's own explanation of the change — prime root-cause evidence
+    that was in the repository all along.
+    """
+    lines = (message or "").splitlines()
+    body = lines[1:] if lines else []  # drop the subject line
+    raw: list[str] = []
+    paragraph: list[str] = []
+    for line in body:
+        stripped = line.strip()
+        if not stripped:
+            if paragraph:
+                raw.append(" ".join(paragraph))
+                paragraph = []
+            continue
+        if stripped.startswith(("* ", "- ")):
+            if paragraph:
+                raw.append(" ".join(paragraph))
+                paragraph = []
+            raw.append(stripped[2:].strip())
+        elif _TRAILER_RE.match(stripped):
+            continue
+        else:
+            paragraph.append(stripped)
+    if paragraph:
+        raw.append(" ".join(paragraph))
+    segments: list[str] = []
+    for chunk in raw:
+        if chunk.startswith(("http://", "https://")) or len(chunk.split()) < 5:
+            continue
+        parts = re.split(r"(?<=[.!?])\s+", chunk)
+        current = ""
+        for part in parts:
+            candidate = (current + " " + part).strip() if current else part
+            if len(candidate.split()) >= 5:
+                segments.append(candidate)
+                current = ""
+            else:
+                current = candidate
+        if current and len(current.split()) >= 5:
+            segments.append(current)
+    return segments
+
+
+def _top_segments(message: str, count: int = 2) -> list[str]:
+    """The *count* longest fix-message segments, in their original order —
+    the most informative lines of the author's own explanation."""
+    segments = _fix_message_segments(message)
+    chosen = sorted(segments, key=len, reverse=True)[:count]
+    return [s for s in segments if s in chosen]
+
+# classic buffer-overflow copy sinks — a diff line naming one is the copy
+# the postmortem should point at (deterministic vocabulary, not semantics)
+_COPY_SINK_RE = re.compile(r"\b(memcpy|memmove|strcpy|strncpy|sprintf)\s*\(")
+
+
+def _diff_copy_lines(diff: str, limit: int = 2) -> list[str]:
+    """Diff lines that perform a raw copy (``memcpy`` & friends), changed or
+    context — the failure site of a buffer overflow, quoted verbatim."""
+    out: list[str] = []
+    for line in (diff or "").splitlines():
+        if line.startswith(("+++", "---")):
+            continue
+        if _COPY_SINK_RE.search(line):
+            stripped = line[1:].strip() if line[:1] in "+-" else line.strip()
+            if stripped not in out:
+                out.append(stripped)
+    return out[:limit]
+
+
+def _issue_checklist_items(body: str, limit: int = 12) -> list[str]:
+    """Top-level checklist items of an issue body that reference another
+    issue/PR (by ``(#N)`` or an issues URL) — recorded follow-ups, i.e.
+    action items the humans actually agreed to, quoted verbatim from the
+    thread. Sub-bullets (indented lines) are detail, not follow-ups;
+    ``:emoji:`` status markers are stripped."""
+    items: list[str] = []
+    for line in (body or "").splitlines():
+        if line.startswith((" ", "\t")):
+            continue  # sub-bullet / continuation, not a top-level follow-up
+        match = _CHECKLIST_ITEM_RE.match(line)
+        if not match:
+            continue
+        item = re.sub(r"^:[a-z0-9_]+:\s*", "", match.group(1))
+        item = _snippet(item, width=160)
+        if _CHECKLIST_REF_RE.search(item):
+            items.append(item)
+        if len(items) >= limit:
+            break
+    return items
 
 
 def _diff_key_lines(diff: str, max_lines: int = 15) -> list[str]:
@@ -242,28 +431,190 @@ class DeterministicOrchestrator:
     def _impact(self) -> Section:
         return _red_no_evidence("impact")
 
-    def _timeline(self) -> Section:
+    def _milestone_entries(self) -> list[dict[str, Any]]:
+        """Curated (date, kind, text, refs) narrative milestones.
+
+        The timeline a postmortem reader needs is a list of milestones,
+        not every raw evidence row: issue/PR lifecycle, the TOP introducer
+        candidate (authored, and pushed when the committer date differs),
+        the releases that started shipping the vulnerable code and the
+        fix, and the fix itself. Lower-ranked SZZ candidates stay in
+        root_cause as what they are (candidates), and comments posted
+        after the resolution are follow-up discussion, not incident
+        history. An issue/PR closing on the same day a commit was pushed
+        is folded into that push line — one story moment, one line.
+        """
         ev = self.evidence
-        valid_ids = ev.ref_ids()
-        events = sorted(
-            enumerate(ev.timeline), key=lambda pair: (pair[1].date, pair[0])
-        )
+        fix = ev.fix_commit
+        cand = self._top_candidate()
+
+        resolution: date | None = None
+        if fix is not None:
+            resolution = _parse_day(
+                utc_date(fix.committer_date or fix.author_date)
+            )
+        if resolution is None:
+            resolution = max(
+                (d for d in (_parse_day(utc_date(i.closed_at)) for i in ev.issues) if d),
+                default=None,
+            )
+
+        # days on which a commit-push line can absorb a same-day close
+        push_days = {
+            day
+            for day in (
+                _push_day(cand) if cand is not None else None,
+                _push_day(fix) if fix is not None else None,
+            )
+            if day
+        }
+
+        def _close_state(issue) -> str:
+            if issue.merged_at:
+                return " (merged)"
+            return " (unmerged)" if issue.is_pull_request else ""
+
+        entries: list[dict[str, Any]] = []
+        for issue in ev.issues:
+            label = "PR" if issue.is_pull_request else "Issue"
+            entries.append(
+                {
+                    "date": utc_date(issue.created_at),
+                    "kind": "issue",
+                    "text": (
+                        f"{label} #{issue.number} opened by "
+                        f"{issue.author or 'unknown'}: {_snippet(issue.title)}"
+                    ),
+                    "refs": [f"issue:{issue.number}"],
+                }
+            )
+            if issue.closed_at:
+                close_day = utc_date(issue.closed_at)
+                if close_day not in push_days:
+                    entries.append(
+                        {
+                            "date": close_day,
+                            "kind": "issue",
+                            "text": (
+                                f"{label} #{issue.number} closed"
+                                f"{_close_state(issue)} (closed_at "
+                                f"{utc_iso(issue.closed_at)})"
+                            ),
+                            "refs": [f"issue:{issue.number}"],
+                        }
+                    )
+            for k, comment in enumerate(issue.comments):
+                day = _parse_day(utc_date(comment.created_at))
+                if resolution is not None and day is not None and day > resolution:
+                    continue  # post-resolution discussion, not incident history
+                entries.append(
+                    {
+                        "date": utc_date(comment.created_at),
+                        "kind": "issue-comment",
+                        "text": (
+                            f"{comment.author or 'unknown'} commented on "
+                            f"{label.lower()} #{issue.number}: "
+                            f"{_snippet(comment.body)}"
+                        ),
+                        "refs": [f"issue:{issue.number}#comment:{k}"],
+                    }
+                )
+        if cand is not None:
+            entries.append(
+                {
+                    "date": utc_date(cand.author_date),
+                    "kind": "commit",
+                    "text": (
+                        f"Candidate introducer commit {cand.short_sha}: "
+                        f"{_snippet(cand.subject)}"
+                    ),
+                    "refs": [f"candidate:{cand.short_sha}"],
+                }
+            )
+            push_day = _push_day(cand)
+            if push_day is not None:
+                text = (
+                    f"Candidate introducer commit {cand.short_sha} pushed "
+                    f"(committer date {utc_iso(cand.committer_date)})"
+                )
+                refs = [f"candidate:{cand.short_sha}"]
+                for issue in ev.issues:
+                    if issue.closed_at and utc_date(issue.closed_at) == push_day:
+                        text += (
+                            f"; {'PR' if issue.is_pull_request else 'Issue'} "
+                            f"#{issue.number} closed{_close_state(issue)} "
+                            f"(closed_at {utc_iso(issue.closed_at)})"
+                        )
+                        refs.append(f"issue:{issue.number}")
+                entries.append(
+                    {"date": push_day, "kind": "commit", "text": text, "refs": refs}
+                )
+        for rel in ev.releases:
+            name = _tag_project(rel.tag)
+            label = f"{name} {rel.version}".strip() if name else rel.version
+            if rel.role == "fix":
+                text = (
+                    f"{label} released — first release containing the "
+                    f"fix (tag {rel.tag} contains fix commit "
+                    f"{rel.contains_sha[:10]})"
+                )
+                refs = [f"release:{rel.tag}", "fix"]
+            else:
+                text = (
+                    f"{label} released — first release shipping the "
+                    f"vulnerable code (tag {rel.tag} contains introducer "
+                    f"candidate {rel.contains_sha[:10]})"
+                )
+                refs = [f"release:{rel.tag}"]
+                if cand is not None:
+                    refs.append(f"candidate:{cand.short_sha}")
+            entries.append(
+                {"date": rel.date, "kind": "release", "text": text, "refs": refs}
+            )
+        if fix is not None:
+            entries.append(
+                {
+                    "date": utc_date(fix.author_date),
+                    "kind": "commit",
+                    "text": (
+                        f"Fix commit {fix.short_sha}: {_snippet(fix.subject)}"
+                    ),
+                    "refs": ["fix", f"commit:{fix.short_sha}"],
+                }
+            )
+            push_day = _push_day(fix)
+            if push_day is not None:
+                text = (
+                    f"Fix commit {fix.short_sha} pushed (committer date "
+                    f"{utc_iso(fix.committer_date)})"
+                )
+                refs = ["fix", f"commit:{fix.short_sha}"]
+                for issue in ev.issues:
+                    if issue.closed_at and utc_date(issue.closed_at) == push_day:
+                        text += (
+                            f"; {'PR' if issue.is_pull_request else 'Issue'} "
+                            f"#{issue.number} closed{_close_state(issue)} "
+                            f"(closed_at {utc_iso(issue.closed_at)})"
+                        )
+                        refs.append(f"issue:{issue.number}")
+                entries.append(
+                    {"date": push_day, "kind": "commit", "text": text, "refs": refs}
+                )
+        entries = [e for e in entries if e.get("date")]
+        entries.sort(key=lambda e: e["date"])  # ISO dates sort correctly; stable
+        return entries
+
+    def _timeline(self) -> Section:
         claims: list[Claim] = []
         body_lines: list[str] = []
-        for idx, event in events:
-            refs = [f"event:{idx}"]
-            if event.ref in valid_ids and event.ref not in refs:
-                refs.append(event.ref)
+        for entry in self._milestone_entries():
             claims.append(
                 Claim(
-                    text=f"{event.date} — {event.description}",
-                    refs=refs,
+                    text=f"{entry['date']} — {entry['text']}",
+                    refs=list(entry["refs"]),
                 )
             )
-            body_lines.append(
-                f"- **{event.date}** — {event.description} *(kind: "
-                f"{event.kind}, ref: {', '.join(refs)})*"
-            )
+            body_lines.append(f"- **{entry['date']}** — {entry['text']}")
         body = (
             "\n".join(body_lines)
             if body_lines
@@ -309,43 +660,95 @@ class DeterministicOrchestrator:
                 id="root_cause", title=SECTION_TITLES["root_cause"],
                 badge="yellow", body=body, claims=claims,
             )
-        claims: list[Claim] = [
-            Claim(
-                text=(
-                    f"The fix commit {fix.short_sha} changes "
-                    f"{len(fix.files)} file(s): {', '.join(fix.files)}."
-                ),
-                refs=["fix", f"commit:{fix.short_sha}"],
-            )
-        ]
-        diff_lines = _diff_key_lines(fix.diff)
-        diff_block = (
-            "\n".join(diff_lines)
-            if diff_lines
-            else "(no diff content in the collected evidence)"
-        )
-        cand_part = ""
+        claims: list[Claim] = []
+        chain: list[str] = []
         if cand is not None:
-            methods = ", ".join(cand.methods)
             claims.append(
                 Claim(
                     text=(
-                        f"The evidence is consistent with the bug being "
-                        f"introduced in {cand.short_sha} "
-                        f"({_date_part(cand.author_date)}); candidate score "
-                        f"{cand.score:.2f} via {methods}."
+                        f"The bug was introduced in the introducer candidate "
+                        f"{cand.short_sha} (\"{cand.subject}\", "
+                        f"{_date_part(cand.author_date)})."
                     ),
                     refs=[f"candidate:{cand.short_sha}", f"commit:{fix.short_sha}"],
                 )
             )
+            chain.append(
+                f"The bug was introduced in the introducer candidate "
+                f"`{cand.short_sha}` (\"{cand.subject}\", "
+                f"{_date_part(cand.author_date)})."
+            )
+        fix_fact = (
+            f"The fix `{fix.short_sha}` (\"{fix.subject}\", "
+            f"{_date_part(fix.author_date)})."
+        )
+        chain.append(fix_fact)
+        messages = _diff_message_strings(fix.diff)
+        if messages:
+            quoted = "; ".join(
+                f"\"{msg}\" "
+                + ("(added by the fix)" if sign == "+"
+                   else "(the vulnerable behavior — a switch instead of failing)")
+                for sign, msg in messages
+            )
+            claims.append(
+                Claim(
+                    text=(
+                        f"The fix diff states the failure in its own words: "
+                        f"{quoted}."
+                    ),
+                    refs=[f"commit:{fix.short_sha}"],
+                )
+            )
+            chain.append(
+                f"The fix diff states the failure in its own words: {quoted}."
+            )
+        segments = _top_segments(fix.message)
+        if segments:
+            excerpt = " ".join(segments)
+            claims.append(
+                Claim(
+                    text=f'The fix commit message explains: "{excerpt}"',
+                    refs=[f"commit:{fix.short_sha}"],
+                )
+            )
+            chain.append(f'The fix commit message explains: "{excerpt}".')
+        copy_lines = _diff_copy_lines(fix.diff, limit=1)
+        if copy_lines:
+            line = copy_lines[0]
+            object_noun = (
+                "the too-long hostname" if re.search(r"host", line, re.I)
+                else "the data"
+            )
+            claims.append(
+                Claim(
+                    text=(
+                        f"The diff shows the copy at the failure site "
+                        f"(`{line}`): {object_noun} copied into the buffer."
+                    ),
+                    refs=[f"commit:{fix.short_sha}"],
+                )
+            )
+            chain.append(
+                f"The diff shows the copy at the failure site (`{line}`): "
+                f"{object_noun} copied into the buffer."
+            )
+        if not claims:
+            # nothing richer was derivable — anchor the section on the fix
+            claims.append(
+                Claim(text=fix_fact, refs=["fix", f"commit:{fix.short_sha}"])
+            )
+            chain.append(fix_fact)
+        cand_part = ""
+        if cand is not None:
+            methods = ", ".join(cand.methods)
             cand_part = (
-                f"\n\nThe introducer candidate with the highest combined "
-                f"score is `{cand.short_sha}` (\"{cand.subject}\", "
-                f"{_date_part(cand.author_date)}, score {cand.score:.2f}, "
-                f"methods: {methods}). **The evidence is consistent with "
-                f"the bug being introduced in {cand.short_sha} "
-                f"({_date_part(cand.author_date)})** — this is candidate "
-                f"evidence (SZZ-lite linkage), not proven causality."
+                f"\n\n**Introducer linkage:** the top candidate "
+                f"`{cand.short_sha}` (score {cand.score:.2f}, methods: "
+                f"{methods}) — the evidence is consistent with the bug being "
+                f"introduced in {cand.short_sha} "
+                f"({_date_part(cand.author_date)}); this is SZZ-lite "
+                "candidate linkage, not proven causality."
             )
         else:
             cand_part = (
@@ -353,10 +756,7 @@ class DeterministicOrchestrator:
                 f"evidence — {NO_EVIDENCE_PHRASE.lower()} for who "
                 "introduced the bug."
             )
-        body = (
-            f"The fix diff shows what was fixed — key removed/added lines "
-            f"of `{fix.short_sha}`:\n\n```\n{diff_block}\n```{cand_part}"
-        )
+        body = " ".join(chain) + cand_part
         badge = "yellow"  # interpretation over grounded facts
         return Section(
             id="root_cause", title=SECTION_TITLES["root_cause"], badge=badge,
@@ -405,6 +805,32 @@ class DeterministicOrchestrator:
             f"authored by {fix.author} on {_date_part(fix.author_date)}.\n\n"
             f"Files changed: {', '.join(fix.files)}."
         )
+        fix_release = next(
+            (r for r in self.evidence.releases if r.role == "fix"), None
+        )
+        if fix_release is not None:
+            claims.append(
+                Claim(
+                    text=(
+                        f"First release containing the fix: "
+                        f"{fix_release.version} (tag {fix_release.tag}, "
+                        f"{fix_release.date})."
+                    ),
+                    refs=[f"release:{fix_release.tag}"],
+                )
+            )
+            body += (
+                f"\n\nFirst release containing the fix: "
+                f"{fix_release.version} (tag {fix_release.tag}, "
+                f"{fix_release.date})."
+            )
+        diff_lines = _diff_key_lines(fix.diff, max_lines=6)
+        if diff_lines:
+            body += (
+                "\n\nKey lines of the fix diff:\n\n```\n"
+                + "\n".join(diff_lines)
+                + "\n```"
+            )
         return Section(
             id="resolution", title=SECTION_TITLES["resolution"], badge="green",
             body=body, claims=claims,
@@ -414,6 +840,50 @@ class DeterministicOrchestrator:
         ev = self.evidence
         fix = ev.fix_commit
         claims: list[Claim] = []
+        fix_release = next(
+            (r for r in ev.releases if r.role == "fix"), None
+        )
+        if fix_release is not None:
+            up_name = _tag_project(fix_release.tag)
+            up_label = (
+                f"{up_name} {fix_release.version}".strip()
+                if up_name else fix_release.version
+            )
+            claims.append(
+                Claim(
+                    text=(
+                        f"Upgrade to {up_label} — the first "
+                        f"release containing the fix (tag {fix_release.tag})."
+                    ),
+                    refs=[f"release:{fix_release.tag}", "fix"],
+                )
+            )
+        if fix is not None:
+            claims.append(
+                Claim(
+                    text=(
+                        f"Apply the patch to your local version — fix commit "
+                        f"{fix.short_sha} (\"{fix.subject}\") — where "
+                        "upgrading is not possible."
+                    ),
+                    refs=["fix", f"commit:{fix.short_sha}"],
+                )
+            )
+            imperatives = [
+                seg for seg in _fix_message_segments(fix.message)
+                if _IMPERATIVE_RE.match(seg)
+            ][:3]
+            if imperatives:
+                joined = " ".join(imperatives)
+                claims.append(
+                    Claim(
+                        text=(
+                            "Deploy the change the fix itself describes: "
+                            f"\"{joined}\"."
+                        ),
+                        refs=["fix", f"commit:{fix.short_sha}"],
+                    )
+                )
         tests = _test_files(fix.files) if fix is not None else []
         if tests:
             claims.append(
@@ -425,18 +895,33 @@ class DeterministicOrchestrator:
                     refs=["fix", f"commit:{fix.short_sha}"],
                 )
             )
+        recorded = 0
         for issue in ev.issues:
-            if len(claims) >= 3:
-                break
-            claims.append(
-                Claim(
-                    text=(
-                        f"Track follow-up in the linked issue "
-                        f"(#{issue.number}) which is currently {issue.state}."
-                    ),
-                    refs=[f"issue:{issue.number}"],
+            for item in _issue_checklist_items(issue.body):
+                claims.append(
+                    Claim(
+                        text=(
+                            f"Follow-up recorded in the tracking issue "
+                            f"(#{issue.number}): {item}"
+                        ),
+                        refs=[f"issue:{issue.number}"],
+                    )
                 )
-            )
+                recorded += 1
+        if fix is not None and not recorded:
+            # no thread-recorded follow-ups: keep the tracking pointer only
+            for issue in ev.issues:
+                claims.append(
+                    Claim(
+                        text=(
+                            f"Track follow-up in the linked issue "
+                            f"(#{issue.number}) which is currently "
+                            f"{issue.state}."
+                        ),
+                        refs=[f"issue:{issue.number}"],
+                    )
+                )
+                break
         if not claims:
             if fix is None:
                 red_body = (

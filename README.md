@@ -82,12 +82,12 @@ case (deterministic fallback, no AI, no Bobcoins — `eval-output/curl-cve-2023-
 |---|---|---|
 | introducer_top1 | ✓ | Predicted `4a4b63daaa` = ground truth (SZZ-blame + issue-link; real top-1) |
 | introducer_top5 | ✓ | |
-| timeline_recall | 0.38 | 3/8 human events; the rest (releases, distros mail, disclosure) are not in git |
-| timeline_precision | 0.60 | |
-| action_item_overlap | 0.11 | 1/9 — the deterministic floor cites only repo-grounded items |
-| root_cause_match | 0.22 | diff-facts without narrative |
+| timeline_recall | 0.75 | 6/8 human events; the missing two (private report, distros mail) are not in git |
+| timeline_precision | 1.00 | milestone curation: every generated timeline entry matches a human event |
+| action_item_overlap | 0.33 | 3/9 — upgrade-to-fix-release, apply-the-patch, regression test; the other six are advice/opinion the repo cannot ground |
+| root_cause_match | 0.29 | causal chain quoting the fix's own message and diff strings |
 | honesty_check | ✓ | impact & detection declared "No evidence" |
-| claim_linkage_rate | 1.00 | 15/15 claims carry valid evidence refs |
+| claim_linkage_rate | 1.00 | 21/21 claims carry valid evidence refs |
 | line_agreement | 0.00 | sentence-level recall vs. the human postmortem text |
 | wall_clock_seconds | <1s | evidence collection 11s + generation; human baseline ≈ 90 min/postmortem |
 

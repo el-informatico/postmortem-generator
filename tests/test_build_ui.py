@@ -331,7 +331,12 @@ def test_build_real_curl_case(tmp_path: Path) -> None:
 
     assert "curl-cve-2023-38545" in html
     # timeline: one track item per evidence event
-    assert html.count('class="tl-item') == len(evidence["timeline"]) == 5
+    # one track item per evidence event (B7: lifecycle/release/push events
+    # grew the evidence timeline from 5 to 11 rows for the curl case)
+    assert html.count('class="tl-item') == len(evidence["timeline"])
+    assert len(evidence["timeline"]) >= 5
+    kinds = {e["kind"] for e in evidence["timeline"]}
+    assert "release" in kinds
     # honesty sections red with "No evidence"
     for sid in ("impact", "detection"):
         m = re.search(rf'<section class="pm-section b-(\w+)" data-section="{sid}">', html)
@@ -346,7 +351,8 @@ def test_build_real_curl_case(tmp_path: Path) -> None:
     assert len(rows) == 10
     # header meta
     assert "generator: deterministic-fallback" in html
-    assert "200 µs" in html                      # wall_clock_seconds = 0.0002
+    # wall_clock_seconds rendered as a sub-millisecond human string
+    assert re.search(r"\d+(\.\d+)? (µs|ms)", html)
     assert build_ui.HUMAN_BASELINE in html
     # real evidence links resolve to GitHub
     assert "https://github.com/curl/curl/commit/fb4415d8aee6c1045be932a34fe6107c2f5ed147" in html

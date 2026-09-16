@@ -14,18 +14,18 @@
     },
     {
       "name": "timeline_recall",
-      "value": 0.09090909090909091,
-      "detail": "Heuristic: 1/11 gt events matched; match = shared sha10 OR (|date delta| <= 3d AND content-token jaccard >= 0.3)."
+      "value": 0.18181818181818182,
+      "detail": "Heuristic: 2/11 gt events matched; match = shared sha10 OR (|date delta| <= 3d AND content-token jaccard >= 0.3)."
     },
     {
       "name": "timeline_precision",
       "value": 1.0,
-      "detail": "Heuristic: 2/2 generated entries matched; match = shared sha10 OR (|date delta| <= 3d AND content-token jaccard >= 0.3)."
+      "detail": "Heuristic: 4/4 generated entries matched; match = shared sha10 OR (|date delta| <= 3d AND content-token jaccard >= 0.3)."
     },
     {
       "name": "action_item_overlap",
-      "value": 0.0,
-      "detail": "Heuristic: 0/14 gt action items covered: best overlap_ratio(gt_tokens, gen_tokens) >= 0.35; generated items = markdown list items of the body + claims."
+      "value": 0.7857142857142857,
+      "detail": "Heuristic: 11/14 gt action items covered: best overlap_ratio(gt_tokens, gen_tokens) >= 0.35; generated items = markdown list items of the body + claims."
     },
     {
       "name": "root_cause_match",
@@ -40,12 +40,12 @@
     {
       "name": "claim_linkage_rate",
       "value": 1.0,
-      "detail": "Heuristic: strict (Evidence passed): non-empty refs AND refs \u2286 Evidence.ref_ids() (4 valid ids); 5/5 claims linked."
+      "detail": "Heuristic: strict (Evidence passed): non-empty refs AND refs \u2286 Evidence.ref_ids() (5 valid ids); 17/17 claims linked."
     },
     {
       "name": "line_agreement",
-      "value": 0.0,
-      "detail": "Heuristic: 0/228 human sentences (>= 6 content tokens) have a pm.markdown sentence with content-token jaccard >= 0.35."
+      "value": 0.039473684210526314,
+      "detail": "Heuristic: 9/228 human sentences (>= 6 content tokens) have a pm.markdown sentence with content-token jaccard >= 0.35."
     },
     {
       "name": "wall_clock_seconds",
@@ -125,8 +125,8 @@
         {
           "gt_date": "2018-01-22",
           "gt_event": "Remediation tracking issue #1684 closed (closed_at 2018-01-22T08:55:11.530Z)",
-          "matched_generated": null,
-          "rule": null
+          "matched_generated": "2018-01-22 \u2014 Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)",
+          "rule": "date \u00b10d + jaccard 0.54"
         }
       ],
       "generated_entries": [
@@ -136,8 +136,18 @@
           "shas": []
         },
         {
-          "text": "**2017-04-28** \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress *(kind: issue, ref: event:0, issue:1684)*",
+          "text": "2018-01-22 \u2014 Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)",
+          "date": "2018-01-22",
+          "shas": []
+        },
+        {
+          "text": "**2017-04-28** \u2014 Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress",
           "date": "2017-04-28",
+          "shas": []
+        },
+        {
+          "text": "**2018-01-22** \u2014 Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)",
+          "date": "2018-01-22",
           "shas": []
         }
       ]
@@ -147,87 +157,87 @@
       "pairs": [
         {
           "gt_item": "Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094) - done per tracking issue",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.0667,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)",
+          "best_score": 0.8667,
+          "covered": true
         },
         {
           "gt_item": "Prometheus monitoring for backups (#1095) - done per tracking issue (went to zero-loss continuous streaming to S3 and Azure blob using WAL-E)",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.0526,
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Prometheus monitoring for backups (#1095)",
+          "best_score": 0.3158,
           "covered": false
         },
         {
           "gt_item": "Set PostgreSQL's max_connections to a sane value (#1096) - done per tracking issue",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.0833,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Set PostgreSQL's max_connections to a sane value (#1096)",
+          "best_score": 0.8333,
+          "covered": true
         },
         {
           "gt_item": "Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097) - closed in favor of WAL-E (#494)",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.0769,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)",
+          "best_score": 0.6154,
+          "covered": true
         },
         {
           "gt_item": "Hourly LVM snapshots of the production databases (#1098) - done; postmortem: \"LVM snapshots are now taken every hour instead of once per 24 hours\"",
-          "best_generated": null,
-          "best_score": 0.0,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Hourly LVM snapshots of the production databases (#1098)",
+          "best_score": 0.3529,
+          "covered": true
         },
         {
           "gt_item": "Azure disk snapshots of production databases (#1099) - superseded by \"Fix Azure snapshots\" (#1606)",
-          "best_generated": null,
-          "best_score": 0.0,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Azure disk snapshots of production databases (#1099)",
+          "best_score": 0.6667,
+          "covered": true
         },
         {
           "gt_item": "Move staging to the ARM environment (#1100) - done per tracking issue",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.1111,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Move staging to the ARM environment (#1100)",
+          "best_score": 0.7778,
+          "covered": true
         },
         {
           "gt_item": "Recover production replica(s) (#1101) - done per tracking issue",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.1111,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Recover production replica(s) (#1101)",
+          "best_score": 0.7778,
+          "covered": true
         },
         {
           "gt_item": "Automated testing of recovering PostgreSQL database backups (#1102) - superseded by \"Automate restoring a database with Wal-E\" (#1265)",
-          "best_generated": null,
-          "best_score": 0.0,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Automated testing of recovering PostgreSQL database backups (#1102)",
+          "best_score": 0.5385,
+          "covered": true
         },
         {
           "gt_item": "Improve PostgreSQL replication documentation/runbooks (#1103) - done per tracking issue",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.1,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Improve PostgreSQL replication documentation/runbooks (#1103)",
+          "best_score": 0.8,
+          "covered": true
         },
         {
           "gt_item": "Investigate pgbarman for creating PostgreSQL backups (#1105) - closed by decision to use WAL-E (#494)",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.0833,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Investigate pgbarman for creating PostgreSQL backups (#1105)",
+          "best_score": 0.5,
+          "covered": true
         },
         {
           "gt_item": "Investigate using WAL-E as a means of Database Backup and Realtime Replication (#494) - implemented; \"Build Streaming Database Backup\" (#1152) done",
-          "best_generated": null,
-          "best_score": 0.0,
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)",
+          "best_score": 0.0667,
           "covered": false
         },
         {
           "gt_item": "Assign an owner for data durability (#1163) - done per tracking issue (root why of the untested backup procedure: \"there was no ownership\")",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.0625,
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581",
+          "best_score": 0.125,
           "covered": false
         },
         {
           "gt_item": "Removal of users by spam should not hard delete (gitlab-ce#27581) - still open at tracking-issue edit time",
-          "best_generated": "Track follow-up in the linked issue (#1684) which is currently closed.",
-          "best_score": 0.0667,
-          "covered": false
+          "best_generated": "Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581",
+          "best_score": 0.7333,
+          "covered": true
         }
       ]
     },
@@ -246,14 +256,14 @@
       }
     },
     "claim_linkage": {
-      "mode": "strict (Evidence passed): non-empty refs AND refs \u2286 Evidence.ref_ids() (4 valid ids)",
-      "valid": 5,
-      "total": 5,
+      "mode": "strict (Evidence passed): non-empty refs AND refs \u2286 Evidence.ref_ids() (5 valid ids)",
+      "valid": 17,
+      "total": 17,
       "invalid": []
     },
     "line_agreement": {
       "human_sentences": 228,
-      "matched": 0,
+      "matched": 9,
       "total": 228,
       "jaccard_threshold": 0.35
     }

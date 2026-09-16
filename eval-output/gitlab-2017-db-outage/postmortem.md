@@ -22,9 +22,11 @@ No evidence in repository data — user impact requires incident telemetry, aler
 
 🟢 green — every claim linked to evidence
 
-- **2017-04-28** — Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress *(kind: issue, ref: event:0, issue:1684)*
+- **2017-04-28** — Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress
+- **2018-01-22** — Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)
 
-- [event:0, issue:1684] 2017-04-28 — Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress
+- [issue:1684] 2017-04-28 — Issue #1684 opened by ernstvn-gitlab: [meta] Listing all issues related to Jan 31st outage to track their progress
+- [issue:1684] 2018-01-22 — Issue #1684 closed (closed_at 2018-01-22T08:55:11Z)
 
 ## Root Cause
 
@@ -51,9 +53,31 @@ No evidence — no fix commit in repository data. This case is an operational/co
 🟡 yellow — grounded, some claims unreferenced
 
 Grounded follow-ups visible in the repository evidence:
-- Track follow-up in the linked issue (#1684) which is currently closed.
+- Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581
+- Follow-up recorded in the tracking issue (#1684): Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)
+- Follow-up recorded in the tracking issue (#1684): Prometheus monitoring for backups (#1095)
+- Follow-up recorded in the tracking issue (#1684): Set PostgreSQL's max_connections to a sane value (#1096)
+- Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)
+- Follow-up recorded in the tracking issue (#1684): Hourly LVM snapshots of the production databases (#1098)
+- Follow-up recorded in the tracking issue (#1684): Azure disk snapshots of production databases (#1099)
+- Follow-up recorded in the tracking issue (#1684): Move staging to the ARM environment (#1100)
+- Follow-up recorded in the tracking issue (#1684): Recover production replica(s) (#1101)
+- Follow-up recorded in the tracking issue (#1684): Automated testing of recovering PostgreSQL database backups (#1102)
+- Follow-up recorded in the tracking issue (#1684): Improve PostgreSQL replication documentation/runbooks (#1103)
+- Follow-up recorded in the tracking issue (#1684): Investigate pgbarman for creating PostgreSQL backups (#1105)
 
-- [issue:1684] Track follow-up in the linked issue (#1684) which is currently closed.
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Removal of users by spam should not hard delete https://gitlab.com/gitlab-org/gitlab-ce/issues/27581
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Prometheus monitoring for backups (#1095)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Set PostgreSQL's max_connections to a sane value (#1096)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Hourly LVM snapshots of the production databases (#1098)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Azure disk snapshots of production databases (#1099)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Move staging to the ARM environment (#1100)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Recover production replica(s) (#1101)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Automated testing of recovering PostgreSQL database backups (#1102)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Improve PostgreSQL replication documentation/runbooks (#1103)
+- [issue:1684] Follow-up recorded in the tracking issue (#1684): Investigate pgbarman for creating PostgreSQL backups (#1105)
 
 ## Lessons Learned
 

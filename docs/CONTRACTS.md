@@ -56,11 +56,38 @@ but some claims unreferenced · `red` = no evidence (must say so).
 - `candidate:<short_sha>` (each introducer candidate)
 - `issue:<n>`, `issue:<n>#comment:<k>` (k = 0-based index in `comments`)
 - `event:<i>` (i = index in `evidence.timeline`)
+- `release:<tag>` (each entry in `evidence.releases`)
 
 Claims carry `refs: list[str]`; `pmg.bob.validate_linkage` validates them;
 `claim_linkage_rate` in the eval is computed strictly when the caller passes
 `evidence` (a claim counts as linked iff its refs are non-empty AND all of
 them are in `Evidence.ref_ids()`), else leniently (non-empty refs).
+
+## B7 evidence enrichment (collector → orchestrator)
+
+The collector now records lifecycle facts it always had access to but
+previously dropped, and the deterministic orchestrator builds the narrative
+from them (see `docs/B7-narrative-improvements.md` for the full rationale
+and the before/after metric deltas):
+
+- `CommitInfo.committer_date` / `IntroducerCandidate.committer_date` — when
+  the commit actually landed; the author→committer gap is the review/merge
+  latency and anchors the "pushed" timeline milestone.
+- `IssueThread.closed_at` / `merged_at` / `is_pull_request` — issue/PR
+  lifecycle (a PR closing the same day a commit was pushed merges into one
+  timeline line).
+- `Evidence.releases: list[ReleaseInfo]` — first NON-pre-release git tag
+  containing the fix and the top introducer candidate
+  (`git tag --contains --sort=version:refname`, `-rc/-beta/...` skipped);
+  grounds "first release shipping the vulnerable code"/"containing the fix"
+  events and the "upgrade to <version>" action item.
+- `utc_iso()` / `utc_date()` (contracts) — git dates carry the author's UTC
+  offset while the GitHub API answers in UTC; all day-level narrative
+  comparisons normalize to UTC first.
+
+Eval-side **nothing** changed: metric definitions, thresholds and
+`pmg/eval/**` are untouched by B7 (verified: `git diff --stat pmg/eval/`
+is empty). All movement comes from better evidence and better generation.
 
 ## Eval metrics (canonical names, see `METRIC_NAMES`)
 

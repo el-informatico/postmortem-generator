@@ -386,6 +386,7 @@ def introducer_candidates(
                 methods=[m for m in SZZ_METHODS if method_map[m]],
                 score=round(score, 4),
                 detail=detail,  # type: ignore[arg-type]
+                committer_date=info.committer_date,
             )
         )
 

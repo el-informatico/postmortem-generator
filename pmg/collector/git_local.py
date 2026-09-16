@@ -18,6 +18,11 @@ DIFF_TRUNCATED_MARKER = "\n... [diff truncated]"
 
 _GIT_TIMEOUT = 60  # seconds per git invocation
 
+# pre-release tag suffixes — an -rc/-alpha/-beta/-M tag is not a release
+_PRE_RELEASE_RE = re.compile(
+    r"[-_.](?:rc|cr|alpha|beta|ea|m)\d*$", re.IGNORECASE
+)
+
 # Porcelain blame header: "<sha> <orig_lineno> <final_lineno> [<num_lines>]"
 _BLAME_HEADER_RE = re.compile(r"^([0-9a-f]{40}) (\d+) (\d+)(?: (\d+))?$")
 
@@ -65,12 +70,12 @@ class GitRepo:
         # %x1f (unit separator) between fields; maxsplit keeps the message
         # intact even if it ever contained the separator.
         meta = self._run(
-            "show", "-s", f"--format=%H%x1f%an%x1f%aI%x1f%s%x1f%B", full
+            "show", "-s", f"--format=%H%x1f%an%x1f%aI%x1f%cI%x1f%s%x1f%B", full
         ).rstrip("\n")
-        fields = meta.split("\x1f", 4)
-        if len(fields) != 5:
+        fields = meta.split("\x1f", 5)
+        if len(fields) != 6:
             raise GitError(f"unexpected git show output for {full}: {meta[:200]}")
-        full_sha, author, author_date, subject, message = fields
+        full_sha, author, author_date, committer_date, subject, message = fields
 
         files = [
             line
@@ -94,7 +99,45 @@ class GitRepo:
             files=files,
             diff=diff,
             url="",
+            committer_date=committer_date,
         )
+
+    def tags_containing(self, sha: str) -> list[str]:
+        """All tags containing ``sha``, version-sorted ascending.
+
+        ``--sort=version:refname`` so e.g. ``curl-8_10_0`` does not shadow
+        ``curl-8_4_0`` the way plain alphabetical order would.
+        """
+        full = self.resolve_sha(sha)
+        return [
+            t.strip()
+            for t in self._run(
+                "tag", "--contains", full, "--sort=version:refname"
+            ).splitlines()
+            if t.strip()
+        ]
+
+    def tag_date(self, tag: str) -> str:
+        """ISO-8601 creator date of *tag* (tagger date for annotated tags,
+        commit date for lightweight ones)."""
+        raw = self._run(
+            "for-each-ref",
+            f"refs/tags/{tag}",
+            "--format=%(creatordate:iso-strict)",
+        ).strip()
+        return raw
+
+    def first_tag_containing(self, sha: str) -> tuple[str, str] | None:
+        """``(tag, ISO-8601 date)`` of the earliest-version NON-pre-release
+        tag containing ``sha`` (falls back to the earliest tag at all when
+        every containing tag is a pre-release), or ``None``.
+        """
+        tags = self.tags_containing(sha)
+        if not tags:
+            return None
+        stable = [t for t in tags if not _PRE_RELEASE_RE.search(t)]
+        chosen = (stable or tags)[0]
+        return chosen, self.tag_date(chosen)
 
     def blame_lines(
         self, sha: str, file: str, start: int, end: int

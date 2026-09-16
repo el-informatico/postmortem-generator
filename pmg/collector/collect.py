@@ -4,6 +4,7 @@ every timeline entry traces back to a repository artifact.
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,7 +18,10 @@ from pmg.contracts import (
     Evidence,
     IssueComment,
     IssueThread,
+    ReleaseInfo,
     TimelineEvent,
+    utc_date,
+    utc_iso,
 )
 
 
@@ -39,6 +43,37 @@ def _display_path(path: Path) -> str:
         return str(path)
 
 
+def _display_version(tag: str) -> str:
+    """Best-effort display version for a git tag.
+
+    ``curl-7_69_0`` → ``7.69.0`` · ``rel/2.15.0`` → ``2.15.0`` ·
+    ``v1.2.3`` → ``1.2.3`` · anything unparseable → the tag itself.
+    """
+    name = tag.rsplit("/", 1)[-1]          # rel/2.15.0 → 2.15.0
+    name = re.sub(r"^v(?=\d)", "", name)   # v1.2.3 → 1.2.3
+    name = re.sub(r"^[a-z]+-(?=\d[\._])", "", name)  # curl-7_69_0 → 7_69_0
+    return name.replace("_", ".")
+
+
+def _tag_project(tag: str) -> str:
+    """Project prefix of a version tag, ``""`` when the tag has none.
+
+    ``curl-7_69_0`` → ``curl`` · ``log4j-2.15.0`` → ``log4j`` ·
+    ``rel/2.15.0`` → ``""``. The tag itself names the project; no
+    hard-coded project list.
+    """
+    name = tag.rsplit("/", 1)[-1]
+    name = re.sub(r"^v(?=\d)", "", name)
+    match = re.match(r"^([a-z][a-z0-9]*)-(?=\d)", name)
+    return match.group(1) if match else ""
+
+
+def _release_name(tag: str, version: str) -> str:
+    """Human-facing release label: "curl 7.69.0", "2.15.0"."""
+    project = _tag_project(tag)
+    return f"{project} {version}".strip()
+
+
 def _issue_thread(
     client: GitHubClient, case: CaseConfig, n: int
 ) -> IssueThread:
@@ -46,6 +81,7 @@ def _issue_thread(
     data = client.issue(n)
     comments_raw = client.issue_comments(n)
     author = (data.get("user") or {}).get("login", "")
+    pr_meta = data.get("pull_request") or {}
     return IssueThread(
         number=int(data.get("number") or n),
         title=data.get("title") or "",
@@ -63,6 +99,9 @@ def _issue_thread(
             if isinstance(c, dict)
         ],
         url=data.get("html_url") or f"https://github.com/{case.repo}/issues/{n}",
+        closed_at=data.get("closed_at") or "",
+        merged_at=pr_meta.get("merged_at") or "",
+        is_pull_request=bool(pr_meta),
     )
 
 
@@ -127,45 +166,127 @@ def collect_case(
     if fix is not None and repo is not None:
         candidates = szz.introducer_candidates(fix, repo, issues)
 
+    # -- releases (first tag containing the fix / top candidate) ---------------
+    releases: list[ReleaseInfo] = []
+    if repo is not None:
+        wanted: list[tuple[str, str]] = []
+        if fix is not None:
+            wanted.append(("fix", fix.sha))
+        if candidates:
+            wanted.append(("introducer-candidate", candidates[0].sha))
+        for role, sha in wanted:
+            hit = repo.first_tag_containing(sha)
+            if hit is None:
+                continue
+            tag, tag_date = hit
+            releases.append(
+                ReleaseInfo(
+                    tag=tag,
+                    version=_display_version(tag),
+                    date=utc_date(tag_date),
+                    contains_sha=sha,
+                    role=role,
+                    url=f"https://github.com/{case.repo}/releases/tag/{tag}",
+                )
+            )
+
     # -- timeline (repository facts only, sorted by date) -----------------------
     timeline: list[TimelineEvent] = []
     for thread in issues:
+        label = "PR" if thread.is_pull_request else "Issue"
         timeline.append(
             TimelineEvent(
-                date=(thread.created_at or "")[:10],
+                date=utc_date(thread.created_at),
                 kind="issue",
-                description=f"Issue #{thread.number} opened by "
+                description=f"{label} #{thread.number} opened by "
                             f"{thread.author or 'unknown'}: {_snippet(thread.title)}",
                 ref=f"issue:{thread.number}",
             )
         )
+        if thread.closed_at:
+            state = (
+                " (merged)" if thread.merged_at
+                else " (unmerged)" if thread.is_pull_request
+                else ""
+            )
+            timeline.append(
+                TimelineEvent(
+                    date=utc_date(thread.closed_at),
+                    kind="issue",
+                    description=f"{label} #{thread.number} closed{state} "
+                                f"(closed_at {utc_iso(thread.closed_at)})",
+                    ref=f"issue:{thread.number}",
+                )
+            )
         for k, comment in enumerate(thread.comments):
             timeline.append(
                 TimelineEvent(
-                    date=(comment.created_at or "")[:10],
+                    date=utc_date(comment.created_at),
                     kind="issue-comment",
                     description=f"{comment.author or 'unknown'} commented on "
-                                f"issue #{thread.number}: {_snippet(comment.body)}",
+                                f"{label.lower()} #{thread.number}: "
+                                f"{_snippet(comment.body)}",
                     ref=f"issue:{thread.number}#comment:{k}",
                 )
             )
     for cand in candidates[:3]:
         timeline.append(
             TimelineEvent(
-                date=(cand.author_date or "")[:10],
+                date=utc_date(cand.author_date),
                 kind="commit",
                 description=f"Candidate introducer commit {cand.short_sha}: "
                             f"{_snippet(cand.subject)}",
                 ref=f"candidate:{cand.short_sha}",
             )
         )
+        if utc_date(cand.committer_date) not in ("", utc_date(cand.author_date)):
+            timeline.append(
+                TimelineEvent(
+                    date=utc_date(cand.committer_date),
+                    kind="commit",
+                    description=f"Candidate introducer commit {cand.short_sha} "
+                                f"pushed (committer date "
+                                f"{utc_iso(cand.committer_date)})",
+                    ref=f"candidate:{cand.short_sha}",
+                )
+            )
     if fix is not None:
         timeline.append(
             TimelineEvent(
-                date=(fix.author_date or "")[:10],
+                date=utc_date(fix.author_date),
                 kind="commit",
                 description=f"Fix commit {fix.short_sha}: {_snippet(fix.subject)}",
                 ref="fix",
+            )
+        )
+        if utc_date(fix.committer_date) not in ("", utc_date(fix.author_date)):
+            timeline.append(
+                TimelineEvent(
+                    date=utc_date(fix.committer_date),
+                    kind="commit",
+                    description=f"Fix commit {fix.short_sha} pushed "
+                                f"(committer date {utc_iso(fix.committer_date)})",
+                    ref="fix",
+                )
+            )
+    for rel in releases:
+        name = _release_name(rel.tag, rel.version)
+        if rel.role == "fix":
+            description = (
+                f"{name} released (first tag containing the fix "
+                f"{rel.contains_sha[:10]}: {rel.tag})"
+            )
+        else:
+            description = (
+                f"{name} released (first tag containing introducer "
+                f"candidate {rel.contains_sha[:10]}: {rel.tag})"
+            )
+        timeline.append(
+            TimelineEvent(
+                date=rel.date,
+                kind="release",
+                description=description,
+                ref=f"release:{rel.tag}",
             )
         )
     timeline.sort(key=lambda e: e.date)  # ISO dates sort correctly; stable
@@ -188,5 +309,6 @@ def collect_case(
         issues=issues,
         introducer_candidates=candidates,
         timeline=timeline,
+        releases=releases,
         meta=meta,  # type: ignore[arg-type]
     )

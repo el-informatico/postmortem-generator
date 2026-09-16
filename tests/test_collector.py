@@ -331,3 +331,96 @@ def test_gitrepo_blame_and_pickaxe(tmp_path):
     assert repo.log_pickaxe("checked copy", file="src/socks.c") == [
         (shas["fix"], "2023-10-11T05:34:19+00:00")
     ]
+
+
+# ---------------------------------------------------------------------------
+# (d) tags → releases; committer dates; issue lifecycle fields (B7)
+# ---------------------------------------------------------------------------
+
+
+def test_first_tag_containing_prefers_stable_and_versionsort(tmp_path):
+    shas = build_synthetic_repo(tmp_path)
+    repo = tmp_path / "repo"
+    # a pre-release tag and a stable tag on the fix; a version-sort trap
+    # (v10 vs v9) on the introducer
+    _git(repo, "tag", "rel-2.15.0-rc1", shas["fix"])
+    _git(repo, "tag", "v9.0.0", shas["fix"])
+    _git(repo, "tag", "v10.0.0", shas["introducer"])
+    gr = GitRepo(repo)
+
+    assert gr.tags_containing(shas["fix"]) == ["rel-2.15.0-rc1", "v9.0.0"]
+    # the -rc tag is skipped: a release candidate is not a release
+    tag, date = gr.first_tag_containing(shas["fix"])
+    assert tag == "v9.0.0"
+    assert date.startswith("2023-10-11")
+    # version sort, not alphabetical (v9.0.0 < v10.0.0 numerically); the
+    # introducer is an ancestor of the fix, so v9.0.0 contains it too
+    assert gr.first_tag_containing(shas["introducer"])[0] == "v9.0.0"
+    # a commit no tag contains (new work on top of the fix) → None
+    after = _git(
+        repo, "commit", "-q", "--allow-empty", "-m", "post-fix work",
+        date="2024-01-01T00:00:00+00:00",
+    )
+    del after
+    assert gr.first_tag_containing("HEAD") is None
+
+
+def test_collect_case_release_and_lifecycle_events(tmp_path, monkeypatch):
+    shas = build_synthetic_repo(tmp_path)
+    _git(tmp_path / "repo", "tag", "v2.0.0", shas["fix"])
+    case = CaseConfig(
+        name="synthetic",
+        repo="example/demo",
+        issues=[7],
+        fix_sha=shas["fix"][:10],
+        local_repo=str(tmp_path / "repo"),
+    )
+
+    class _StubClient:
+        def __init__(self, repo, cache_dir=None, offline=False):
+            pass
+
+        def issue(self, n):
+            return {
+                "number": n,
+                "title": "PR: fix the socks bug",
+                "state": "closed",
+                "user": {"login": "dev"},
+                "created_at": "2023-10-10T00:00:00Z",
+                "closed_at": "2023-10-11T06:00:00Z",
+                "body": "Fixes the bug.",
+                "html_url": "https://github.com/example/demo/issues/7",
+                "pull_request": {"merged_at": None},
+            }
+
+        def issue_comments(self, n):
+            return []
+
+    monkeypatch.setattr("pmg.collector.collect.GitHubClient", _StubClient)
+    evidence = collect_case(case, tmp_path / "cache", offline=True)
+
+    # lifecycle fields mapped through the contract
+    issue = evidence.issues[0]
+    assert issue.closed_at == "2023-10-11T06:00:00Z"
+    assert issue.merged_at == ""
+    assert issue.is_pull_request is True
+
+    # releases: one for the fix, one for the top introducer candidate
+    roles = {r.role: r for r in evidence.releases}
+    assert roles["fix"].tag == "v2.0.0"
+    assert roles["fix"].version == "2.0.0"
+    assert roles["fix"].date == "2023-10-11"
+    assert roles["fix"].url.endswith("/releases/tag/v2.0.0")
+    assert roles["introducer-candidate"].tag == "v2.0.0"
+
+    # timeline carries issue-open, issue-close (unmerged PR) and release rows
+    texts = [e.description for e in evidence.timeline]
+    assert any("PR #7 opened" in t for t in texts)
+    assert any("PR #7 closed (unmerged)" in t and "closed_at" in t for t in texts)
+    assert any(
+        "2.0.0 released (first tag containing the fix" in t for t in texts
+    )
+    ids = evidence.ref_ids()
+    for event in evidence.timeline:
+        assert event.ref in ids, f"dangling ref {event.ref}"
+    assert "release:v2.0.0" in ids
