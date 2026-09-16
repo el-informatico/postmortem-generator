@@ -198,18 +198,19 @@ Mandatory submission evidence — plan them into the video, don't bolt them on:
 
 > Does it hold up? The harness compares the output against the human postmortem — and the
 > scoring itself has no AI in it. Introducer prediction: exact match. Honesty check: passed.
-> Claim linkage: fifteen out of fifteen claims carry valid evidence references. And the red
+> Claim linkage: twenty-one out of twenty-one claims carry valid evidence references. And the red
 > sections — impact, detection — are the point: **it refuses to invent what git doesn't
-> know.** The floor is honest about its limits too: three of eight timeline events, weak
-> narrative. That's the baseline the Bob sessions are pushing up.
+> know.** The floor is honest about its limits too: six of eight timeline events and a
+> token-level root cause — line-level agreement with the human prose is still
+> near zero. That's the baseline the Bob sessions are pushing up.
 
 **ON-SCREEN**
 - The eval table (`metrics.md`) with rows lighting up one at a time:
-  `introducer_top1 ✓` → `honesty_check ✓` → `claim_linkage_rate 1.00 (15/15)`.
+  `introducer_top1 ✓` → `honesty_check ✓` → `claim_linkage_rate 1.00 (21/21)`.
 - Then the two red section headers from `postmortem.md`: Impact 🔴 / Detection 🔴 with
   "No evidence" highlighted.
-- Small footer line: "baseline (no-AI floor): timeline recall 3/8 · root-cause 0.22 —
-  narrative is the sprint's target".
+- Small footer line: "baseline (no-AI floor): timeline recall 6/8 · root-cause 0.29 ·
+  line agreement 0.00 — narrative prose is the sprint's target".
 
 **EDIT NOTE (producción)**
 - Una fila por golpe de sonido; sin leer toda la tabla en voz alta — la tabla completa
@@ -273,7 +274,7 @@ Single continuous screen capture, VO read live over it, ~75–90 s, no cuts need
 3. "Every claim links to evidence, and sections git cannot ground — impact, detection — are
    declared 'No evidence' in red. It refuses to invent."
 4. "Scored against Daniel Stenberg's own hand-written postmortem: exact introducer, honesty
-   check passed, fifteen of fifteen claims linked."
+   check passed, twenty-one of twenty-one claims linked."
 5. "IBM Bob 2.0 orchestrates the role agents; the repository is the evidence.
    github.com/el-informatico/postmortem-generator."
 
