@@ -101,6 +101,57 @@ curl CVE-2023-38545.**
 - [x] Suite completa: **155 tests, 0 fallos**. README con corpus + UI. Commits por bloque
       vía hooks. Sin push (publicación = gate aparte del usuario).
 
+## B7 — 2026-09-15 · Métricas narrativas + dry-run video + verificación sprint
+
+- [x] **Métricas narrativas del piso determinista (sin IA, sin tocar el scoring)**:
+  `git diff --stat pmg/eval/` VACÍO — cada delta viene de mejor evidencia y mejor
+  generación, nunca del cálculo de la métrica (documentado en
+  `docs/B7-narrative-improvements.md` con la regresión incluida).
+  - Collector: `committer_date` (fix y candidatos), `closed_at`/`merged_at`/
+    `is_pull_request` de issues/PRs, y **releases** vía
+    `git tag --contains --sort=version:refname` (tags `-rc/-beta/...`
+    descartados: un RC no es una release). Fechas normalizadas a UTC
+    (`utc_iso`/`utc_date` en contracts) — solo esto corrigió un día de drift
+    en el push del introducer de curl (`2020-02-17T00:08+01:00` =
+    `2020-02-16T23:08Z`).
+  - Orchestrator: timeline narrativo = **hitos** (lifecycle de issue/PR,
+    candidato top authored+pushed, releases, fix; push y cierre-de-PR del
+    mismo día en UNA línea; comentarios post-resolución fuera del timeline
+    — los 156 comentarios post-disclosure de log4j eran ruido); root cause
+    cita **las palabras del propio fix** (mensajes del diff con joins de
+    strings C, body del commit message con trailers fuera, sitio de copy
+    `memcpy`); action items agregan upgrade-a-release-del-fix + aplicar el
+    patch + **checklist del tracking issue** (los action items humanos de
+    gitlab vivían ahí) — sin inventar los de opinión/bounty.
+  - **Deltas medidos (mismo harness, antes→después)**:
+    curl: recall 0.375→**0.75** · precision 0.60→**1.00** · actions
+    0.111→**0.333** · root_cause 0.220→**0.295** · top1/top5/honesty/linkage
+    intactos (21/21 claims). log4j: precision 0.012→**0.50** · actions
+    0.00→**0.25** · root_cause 0.086→**0.172** · line_agreement 0.056→0.00
+    (regresión documentada: el match viejo era un comentario
+    post-disclosure citando la security page — ruido eliminado). gitlab:
+    recall 0.091→**0.182** · actions 0.00→**0.786** (checklist del issue) ·
+    precision 1.00. Techos restantes son honestos (eventos solo-advisory,
+    ciego SZZ de log4j, line_agreement ≈ 0 = objetivo de las sesiones Bob).
+  - Suite: **172 tests, 0 fallos** (155 heredados + 17 nuevos: UTC, tags,
+    lifecycle, extracción de mensajes/checklist, curación de hitos).
+  - `eval-output/` regenerado para los 3 casos + UI rebuild + tabla de
+    métricas de README y cifras del video-script actualizadas a los valores
+    nuevos (6/8, 0.29, 21/21).
+- [x] **Dry-run del video** (`docs/video-dryrun.md` + 9 screenshots reales en
+  `docs/assets/video-dryrun/`): la UI se driveó offline con el chromium de la
+  cache de playwright vía CDP-pipe (sin instalar nada, sin red). 7 beats con
+  timestamps exactos (4:20), selectores reales, cues de narración y checklist
+  de grabación. Hallazgos útiles: el sha del introducer no es texto en el tab
+  blog (usar Ctrl+F o el tab advisory); "log4j in progress" va como VO+overlay;
+  el switcher conserva el scroll. Cifras del guion actualizadas a las nuevas.
+- [x] **`scripts/verify_sprint_ready.sh`**: verificación offline completa
+  (tests, build de UI byte-identical, YAML de la Action, pipeline+honesty en
+  los 3 casos en dirs temporales, higiene de repo/hooks/licencia/secrets) —
+  **READY OFFLINE** con 15 PASS/1 WARN esperado (árbol sucio durante el
+  trabajo). Lista lo no verificable sin el evento (jueces/tracks, Bobcoins,
+  smoke de Bob, no contactar organizadores).
+
 ## Checklist arranque del sprint (vie 25-sep, antes de comprometer horas)
 - Re-verificar `docs/research/hackathon-status-2026-09-15.md` (jueces/tracks, 2º challenge,
   reglas, política de pre-existencia).
