@@ -104,6 +104,32 @@ Unchanged (verified):
 
 Caveat: the embedded `timelineEvents` "End" is 2026-09-27T21:00:00Z while every public surface says 15:00 UTC — an internal inconsistency worth one re-check on sprint day, not a rule change.
 
+## Re-verification 2026-09-16 (fetched 01:10–01:20 UTC; tavily_extract + raw-HTML JSON grep, same method as the 15-sep baseline)
+
+Verdict per item vs the 15-sep afternoon snapshot above:
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| Tracks | **UNCHANGED** — still "TBA / Announced soon" | /live dashboard (lablab.ai/ai-hackathons/ibm-bob-2-hackathon/live) |
+| Judges | **UNCHANGED** — still exactly 2 NativelyAI names (Pawel Czech, Andrea Marazzi); no IBM judges; embedded `externalRolePersons`/`eventRoles` still empty | event page raw HTML (builder.io payload) |
+| 2nd challenge | **UNCHANGED** — still absent; zero hits for "BeMyApp"/"Bobathon"/second-challenge in raw HTML | event page raw |
+| Sept Bobcoins | **UNCHANGED** — still "Access details TBA"; "bobcoin" appears nowhere on the event page (case-insensitive). Bobcoin economics page unchanged: Free 50 / Pro 50 / Pro+ 180 / Ultra 1000 monthly, $500 per 1000-coin pack, $0.50/coin overage | event page raw; <https://bob.ibm.com/docs/ide/account/bobcoins> |
+| Rules / pre-existing-code policy | **UNCHANGED** — S3 bucket still has no Sept rules PDF (newest object 2026-08-29, nothing added for the 5th consecutive day; 27 objects total); only policy text remains "Submissions must be original and MIT-compliant" | <https://watsonx-hackathons-2026.s3.us.cloud-object-storage.appdomain.cloud/?list-type=2> |
+| Submission requirements | **UNCHANGED** — same basic-info + cover/video/slides fields; "screenshots of IBM Bob task session summaries" line still present; registration `status:"PUBLISHED"`, `participantsLimit:null` (no cap) | event page raw |
+| Dates / deadline | **UNCHANGED** — `startAt` 2026-09-25T15:00:00Z, `endAt` 2026-09-27T15:00:00Z; /live: "You have until Sep 27, 2026, 15:00 UTC to submit"; milestones "Kickoff · Registration closes" Fri 15:00 UTC, "Submissions close · Judging begins" Sun 15:00 UTC. The `timelineEvents` 19:00Z/21:00Z shift persists — confirmed confined to that one field | /live + event page raw + developer.ibm.com |
+| Prizes | **UNCHANGED** — $10,000 pool; $5,000 / $3,000 / $2,000 cards (each amount appears exactly once) | event page raw |
+| Team size | **UNCHANGED** — `teamMembersLimit:6` | event page raw |
+| Registered count | **CHANGED (backwards)** — /live now shows **10,420** registered / **1,698** teams forming (vs 10,700 / 1,742 on 15-sep) despite "+202 in last 24h". Net decrease with positive inflow ⇒ purge/dedup or baseline imprecision; does not affect the plan, re-check at sprint start | /live |
+
+New observations (16-sep):
+
+1. A BeMyApp **university-program** page offers "40 Bobcoins for 30 days" (<https://ibm.biz/university-bob>) — that offer belongs to the university program, **not** this event; do not book it as the Sept figure. (The related "AI Builders Conference with IBM Bob" ran Sep 16.)
+2. The 24-Sep workshop time now **disagrees across sources**: developer.ibm.com lists 12:00 ET; the BeMyApp page (baseline source for 11:00–12:30 ET) is unchanged. The recording is the deliverable either way (SPRINT-RUNBOOK §2).
+3. /live now surfaces "Tech partners 0" (absent from the baseline; unknown whether a delta).
+4. Status flags: `active:true`, `signupActive:true`, `toBeAnnounced:false`. Two tavily_search sweeps found only promo reposts — no judges/tracks/Bobcoin announcements since 15-sep.
+
+No prompt-injection content in any fetched page. Conclusion: every planning assumption in `docs/SPRINT-RUNBOOK.md` and `docs/BOBCOIN-BUDGET.md` built on the 15-sep snapshot remains valid 9 days before kickoff; the only moving number (registered count) does not affect the plan.
+
 ## Sprint-start checklist (re-check Fri 25-Sep before committing hours)
 
 1. **Before 15:00 UTC Fri:** registration must be complete (it closes at kickoff) and team joined/formed (limit 6).
@@ -125,6 +151,8 @@ Fetched:
 - https://developer.ibm.com/events/prompt-build-ship-virtual-hands-on-workshop-with-ibm-bob/
 - https://developer.ibm.com/events/ibm-bob-20-hackathon/ (simplified + raw)
 - https://ibm-bobday.bemyapp.com/
+
+Fetched again 2026-09-16 (re-verification section above): the lablab event page (raw + extract), /live, the S3 listing, https://bob.ibm.com/docs/ide/account/bobcoins, developer.ibm.com event + workshop pages, and aibuilderschallenge-bob.bemyapp.com (via search-result extraction); tavily_search ×2.
 - https://aibuilderschallenge-bob.bemyapp.com/
 - https://bob.ibm.com/docs/ide/account/bobcoins
 - https://entremotivator.com/hackathons/ibm-bob-2-hackathon/ (third-party mirror; first fetch failed, retry via DDG fetch_content succeeded)
