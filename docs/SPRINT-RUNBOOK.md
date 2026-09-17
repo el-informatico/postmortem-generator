@@ -251,7 +251,7 @@ Form fields (from `docs/research/hackathon-status-2026-09-15.md` §4):
 
   Pre-drafted disclosure paragraph (paste into the Long Description; adapt only if the hour-0 rules gate §3(e) resolves differently):
 
-  > **Pre-existing work:** the deterministic core of this repo — git collector, SZZ-lite introducer search, eval harness, 3-case real corpus, offline UI — was built and pushed before the sprint (open, dated git history; never re-dated). Built during the IBM Bob 2.0 window (Sep 25–27): the IBM Bob integration layer — multi-agent postmortem sessions (Agent mode, parallel tasks, subagents, document understanding), measured metric deltas over the deterministic floor, and the `bob_sessions/` evidence trail.
+  > **Pre-existing work:** the deterministic core of this repo — git collector, SZZ-lite introducer search, eval harness, 3-case real corpus, offline UI — was built Sep 15–16 and pushed Sep 17, 2026, before the sprint kickoff (Sep 25; open, dated git history, never re-dated; the hour-0 pre-existence policy decision is documented in `docs/SPRINT-RUNBOOK.md` §3(e)). Built during the IBM Bob 2.0 window (Sep 25–27): the IBM Bob integration layer — multi-agent postmortem sessions (Agent mode, parallel tasks, subagents, document understanding), measured metric deltas over the deterministic floor, and the `bob_sessions/` evidence trail.
 - [ ] **Technology & Category Tags**.
 - [ ] **Cover Image** (UI screenshot or metrics badge card).
 - [ ] **Video Presentation** — v1 or re-record per P7 decision.
