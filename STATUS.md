@@ -152,6 +152,50 @@ curl CVE-2023-38545.**
   trabajo). Lista lo no verificable sin el evento (jueces/tracks, Bobcoins,
   smoke de Bob, no contactar organizadores).
 
+## video-v1 — 2026-09-16 · Demo video 4:27 (entregable fuera del árbol)
+
+- [x] **`postmortem-generator-demo-v1.mp4`** (1920×1080, 30 fps, H.264+AAC,
+  4:27, 26 clips xfade 0.4 s, captions SRT quemadas) en
+  `~/projects/postmortem-generator-deliverables/video-v1/` — fuera del working
+  tree, sin push. Pipeline del skill `demo-video-automation` (probado):
+  narration verbatim del guion (26 segmentos) → edge-tts
+  `en-US-AndrewNeural` rate +0% (268.5 s; sin `CARTESIA_API_KEY` en env →
+  fallback aprobado) → 15 escenas HTML estáticas generadas + 11 clips de la UI
+  real (`ui/index.html` offline, chromium en cache vía playwright-core, cursor
+  sintético + ripple porque el video de Playwright no renderiza el cursor del
+  SO) → ffmpeg: trim 0.12 s de cabeza, xfade+acrossfade encadenados, SRT con
+  aserción dura de conteo de palabras (cues == narración), loudnorm −16 LUFS.
+- Números en pantalla: solo `eval-output/` y STATUS (1335 días, 6/8, 0.29,
+  21/21, score 0.70, µs reales del pill). Cero atribución de IA: Bob solo
+  como capa de orquestación; sin paths internos (única ruta visible:
+  `.repos/curl` y `eval-output/...`).
+- QA determinista (gate): **7/7 PASS** — duración 4:27 (dentro de 3:30–4:30),
+  decode completo 0 errores, formato exacto 1920×1080 yuv420p 30 fps,
+  blackdetect recalibrado para dark theme (`pixel_black_th=0.004`: solo negro
+  puro; el falso positivo del terminal `#0a0d12` quedó documentado), lane
+  whitedetect (YAVG>240 = página sin pintar) 0/534 frames, re-conteo de
+  palabras del SRT 633==633, audio rms −16.1 dB peak −1.2 dB — reporte en
+  `qa/qa-report.md`. QA de color (no-gate): revisión de frames sobre 12 frames
+  clave + 4 crops de la banda de captions, un criterio por frame, schema
+  `{pass, reason}` — `qa/frame-results.json`.
+- Decisiones documentadas: sin música (sintética daña más de lo que suma);
+  los flashes REQUIRED-EVIDENCE #1/#2 (sesiones Bob) quedan para el sprint
+  (`bob_sessions/` no existe pre-evento — no se fabrican screenshots); el
+  path del terminal se redactó a `eval-output/curl-cve-2023-38545` (los
+  números no se tocaron); take-2 solo en ui-b (el panel de métricas abre al
+  final del documento → scroll post-toggle), take-1 conservado en el resto.
+- **Fix colisión captions↔escena (post-QA)**: el lane de color detectó que
+  los "pills" `.lower` de s04/s05/s09 y la 3ª fila de badges de s08 caían
+  dentro de la banda de captions quemadas (y857–959; verificado por
+  bounding-box en chromium + row-scan de píxeles). Fix: s04 pill eliminado
+  (mensaje verbatim en el VO), s05 bottom 120→270, s08 badges top 640→500,
+  s09 pill movido arriba (top:90). Re-grabado el grupo static completo
+  (escenas deterministas) + re-ensamblado; en el proceso se encontró y
+  parcheó un pie de guerra en `assemble.py` (cache de norm por id
+  reutilizaba clips viejos aunque el raw fuera nuevo → ahora compara
+  mtimes). Verificación final: row-scan (gap limpio en los 4 frames) y revisión de frames
+  4/4 PASS.
+
 ## Checklist arranque del sprint (vie 25-sep, antes de comprometer horas)
 - Re-verificar `docs/research/hackathon-status-2026-09-15.md` (jueces/tracks, 2º challenge,
   reglas, política de pre-existencia).
