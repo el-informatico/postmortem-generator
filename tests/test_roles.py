@@ -11,6 +11,8 @@ from pmg.bob.roles import (
     SYNTH_ROLE_ID,
     HONESTY_RULES,
     ROLES,
+    _analyst_role_ids,
+    _DEFAULT_ANALYST_ROLE_IDS,
     build_role_prompt,
 )
 from pmg.contracts import Evidence
@@ -106,3 +108,19 @@ def test_role_partition_analysts_vs_synth() -> None:
     assert len(analyst_ids) == 3
     assert len(synth) == 1
     assert analyst_ids | {SYNTH_ROLE_ID} == {r.id for r in ROLES}
+
+
+def test_analyst_role_ids_env_override(monkeypatch) -> None:
+    """PMG_ANALYST_ROLES shrinks the fan-out with no code change (sprint
+    cut-ladder rung 4, docs/BOBCOIN-BUDGET.md §5); bad ids fail loudly."""
+    assert ANALYST_ROLE_IDS == _DEFAULT_ANALYST_ROLE_IDS  # unset -> 3 roles
+    monkeypatch.setenv("PMG_ANALYST_ROLES", "document-analyst")
+    assert _analyst_role_ids() == ("document-analyst",)
+    monkeypatch.setenv("PMG_ANALYST_ROLES", " document-analyst , code-reviewer ")
+    assert _analyst_role_ids() == ("document-analyst", "code-reviewer")
+    monkeypatch.setenv("PMG_ANALYST_ROLES", "sre-synthesizer")
+    with pytest.raises(ValueError, match="unknown role"):
+        _analyst_role_ids()
+    monkeypatch.setenv("PMG_ANALYST_ROLES", ", ,")
+    with pytest.raises(ValueError, match="no role ids"):
+        _analyst_role_ids()

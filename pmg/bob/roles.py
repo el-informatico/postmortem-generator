@@ -17,6 +17,7 @@ list of valid evidence reference ids; the honesty rules are binding.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -51,8 +52,8 @@ SYNTH_OUTPUT_CONTRACT = (
     "contains them."
 )
 
-ANALYST_ROLE_IDS = ("commit-archaeologist", "document-analyst", "code-reviewer")
 SYNTH_ROLE_ID = "sre-synthesizer"
+_DEFAULT_ANALYST_ROLE_IDS = ("commit-archaeologist", "document-analyst", "code-reviewer")
 
 
 @dataclass(frozen=True)
@@ -130,6 +131,33 @@ ROLES: list[RoleDef] = [
 ]
 
 ROLE_BY_ID: dict[str, RoleDef] = {r.id: r for r in ROLES}
+
+
+def _analyst_role_ids() -> tuple[str, ...]:
+    """The analyst roles to fan out on (default: all three).
+
+    Overridable without code changes via the PMG_ANALYST_ROLES env var
+    (comma-separated role ids) — the low-quota contingency from the sprint
+    cut ladder (docs/BOBCOIN-BUDGET.md §5 rung 4):
+    ``PMG_ANALYST_ROLES=document-analyst`` runs the cheap 2-role curl
+    configuration. Read once at import time, so set it before launch.
+    """
+    env = os.environ.get("PMG_ANALYST_ROLES", "").strip()
+    if not env:
+        return _DEFAULT_ANALYST_ROLE_IDS
+    ids = tuple(part.strip() for part in env.split(",") if part.strip())
+    if not ids:
+        raise ValueError("PMG_ANALYST_ROLES is set but contains no role ids")
+    unknown = [i for i in ids if i not in _DEFAULT_ANALYST_ROLE_IDS]
+    if unknown:
+        raise ValueError(
+            f"PMG_ANALYST_ROLES has unknown role id(s) {unknown}; "
+            f"valid analyst roles: {list(_DEFAULT_ANALYST_ROLE_IDS)}"
+        )
+    return ids
+
+
+ANALYST_ROLE_IDS = _analyst_role_ids()
 
 
 def _truncate(text: str, limit: int) -> str:

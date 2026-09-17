@@ -46,6 +46,11 @@ on:
         required: false
         default: false
         type: boolean
+      bob_max_cost:
+        description: "Per-session Bobcoin cap forwarded as --bob-max-cost (auto/bob modes only; docs/BOBCOIN-BUDGET.md)"
+        required: false
+        default: "1"
+        type: string
   push:
     branches: [main]
     paths:
@@ -108,6 +113,14 @@ jobs:
           if [ "${{ inputs.offline }}" = "true" ]; then
             OFFLINE_FLAG="--offline"
           fi
+          # Budget guardrail: cap every `bob run` the pipeline spawns at
+          # inputs.bob_max_cost (default 1 — the CI-demo allocation in
+          # docs/BOBCOIN-BUDGET.md §4). Deterministic runs never reach Bob,
+          # so the flag is only added for auto/bob dispatch runs.
+          MAX_COST_FLAG=""
+          if [ "${{ inputs.mode || 'deterministic' }}" != "deterministic" ]; then
+            MAX_COST_FLAG="--bob-max-cost ${{ inputs.bob_max_cost || '1' }}"
+          fi
           # Push trigger: inputs.mode is empty -> "deterministic" keeps the
           # smoke run cheap (no Bobcoin spend even if BOB_API_KEY is set).
           bob-postmortem postmortem \
@@ -115,7 +128,8 @@ jobs:
             --local-repo .repos/curl \
             --mode "${{ inputs.mode || 'deterministic' }}" \
             --out eval-output/curl-cve-2023-38545 \
-            $OFFLINE_FLAG
+            $OFFLINE_FLAG \
+            $MAX_COST_FLAG
 
       # Upload even when the pipeline fails (exit 3/4/5) — the partial
       # evidence/postmortem files make CI failures debuggable.
