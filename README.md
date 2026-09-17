@@ -116,7 +116,7 @@ table per case, with a case switcher for the whole corpus. Open it directly in a
 git clone https://github.com/el-informatico/postmortem-generator && cd postmortem-generator
 git clone https://github.com/curl/curl .repos/curl      # offline evidence base (~155 MB)
 pip install -e ".[dev]"
-pytest                                                 # 130 tests, offline
+pytest                                                 # 175 tests, offline
 
 # full offline pipeline over the real curl case (deterministic fallback)
 bob-postmortem postmortem --case data/cases/curl-cve-2023-38545.json \

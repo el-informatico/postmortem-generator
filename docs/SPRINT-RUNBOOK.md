@@ -248,6 +248,10 @@ Form fields (from `docs/research/hackathon-status-2026-09-15.md` §4):
 
 - [ ] **Project Title** — decided Sat (P7), not Sunday.
 - [ ] **Short Description** + **Long Description** — includes the honest arc: deterministic collector/eval floor + Bob 2.0 multi-agent sessions as the upgrade; names Agent mode, parallel tasks, subagents, document understanding (challenge-statement keywords).
+
+  Pre-drafted disclosure paragraph (paste into the Long Description; adapt only if the hour-0 rules gate §3(e) resolves differently):
+
+  > **Pre-existing work:** the deterministic core of this repo — git collector, SZZ-lite introducer search, eval harness, 3-case real corpus, offline UI — was built and pushed before the sprint (open, dated git history; never re-dated). Built during the IBM Bob 2.0 window (Sep 25–27): the IBM Bob integration layer — multi-agent postmortem sessions (Agent mode, parallel tasks, subagents, document understanding), measured metric deltas over the deterministic floor, and the `bob_sessions/` evidence trail.
 - [ ] **Technology & Category Tags**.
 - [ ] **Cover Image** (UI screenshot or metrics badge card).
 - [ ] **Video Presentation** — v1 or re-record per P7 decision.

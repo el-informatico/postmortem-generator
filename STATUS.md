@@ -175,9 +175,9 @@ curl CVE-2023-38545.**
   puro; el falso positivo del terminal `#0a0d12` quedó documentado), lane
   whitedetect (YAVG>240 = página sin pintar) 0/534 frames, re-conteo de
   palabras del SRT 633==633, audio rms −16.1 dB peak −1.2 dB — reporte en
-  `qa/qa-report.md`. QA de color (no-gate): revisión de frames sobre 12 frames
-  clave + 4 crops de la banda de captions, un criterio por frame, schema
-  `{pass, reason}` — `qa/frame-results.json`.
+  `qa/qa-report.md`. QA de color (no-gate): revisión de frames sobre 12
+  frames clave + 4 crops de la banda de captions, un criterio por frame,
+  schema `{pass, reason}` — `qa/frame-results.json`.
 - Decisiones documentadas: sin música (sintética daña más de lo que suma);
   los flashes REQUIRED-EVIDENCE #1/#2 (sesiones Bob) quedan para el sprint
   (`bob_sessions/` no existe pre-evento — no se fabrican screenshots); el
@@ -193,8 +193,8 @@ curl CVE-2023-38545.**
   (escenas deterministas) + re-ensamblado; en el proceso se encontró y
   parcheó un pie de guerra en `assemble.py` (cache de norm por id
   reutilizaba clips viejos aunque el raw fuera nuevo → ahora compara
-  mtimes). Verificación final: row-scan (gap limpio en los 4 frames) y revisión de frames
-  4/4 PASS.
+  mtimes). Verificación final: row-scan (gap limpio en los 4 frames) y
+  revisión de frames 4/4 PASS.
 
 ## B8 — 2026-09-16 · Hardening pre-sprint: runbook + presupuesto + re-verificación
 - [x] **Re-verificación del status del hackathon** (sección fechada 2026-09-16 en
