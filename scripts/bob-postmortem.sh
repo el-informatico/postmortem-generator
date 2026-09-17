@@ -28,6 +28,13 @@ if command -v bob-postmortem >/dev/null 2>&1; then
   exec bob-postmortem postmortem "$@"
 fi
 
-# Fallback when the console script is not on PATH (no `pip install -e .`):
+# Fallback when the console script is not on PATH (no `pip install -e .`).
+# Prefer python3.12 (the interpreter pmg is installed for; the module form
+# works from any cwd). Bare `python3` is the last resort: it only works when
+# the cwd happens to be the repo root (sys.path[0] for -c is the cwd).
+if command -v python3.12 >/dev/null 2>&1 \
+   && python3.12 -c "import pmg" >/dev/null 2>&1; then
+  exec python3.12 -m pmg.shell.cli postmortem "$@"
+fi
 exec python3 -c 'import sys; from pmg.shell.cli import main; sys.exit(main())' \
   postmortem "$@"

@@ -32,6 +32,9 @@ directly: `/usr/bin/python3.12 -m pmg.shell.cli postmortem --repo ... --issue
   the deterministic no-AI generator and record why in `meta.fallback_reason`.
 - `--mode bob`: force the Bob pipeline (fails loudly if unavailable).
 - `--mode deterministic`: force the offline, no-AI floor.
+- `--bob-max-cost N`: cap every `bob run` at N Bobcoins (`--max-cost` flag;
+  Bob modes only) — the sprint-day budget guardrail, see
+  `docs/BOBCOIN-BUDGET.md`.
 
 ## How it behaves (evidence first)
 

@@ -82,6 +82,18 @@ class TestArgParsing:
         assert captured["args"].cache_dir == "data/cache"
         assert captured["args"].max_diff_bytes == 200000
         assert captured["args"].skip_eval is False
+        assert captured["args"].bob_max_cost is None  # uncapped by default
+
+    def test_bob_max_cost_parsed(self, monkeypatch):
+        captured = self._capture(monkeypatch)
+        rc = cli.main(
+            [
+                "postmortem", "--case", str(CURL_CASE),
+                "--mode", "bob", "--bob-max-cost", "2.5",
+            ]
+        )
+        assert rc == 0
+        assert captured["args"].bob_max_cost == 2.5
 
     def test_direct_flag_form_matches_subcommand_form(self, monkeypatch):
         captured = self._capture(monkeypatch)
@@ -267,6 +279,48 @@ def test_offline_e2e_synthetic_repo(tmp_path, capsys):
     assert "introducer" in metrics_md.lower()
 
     assert "postmortem:" in captured.out  # human summary line
+
+
+@pytest.mark.skipif(
+    not _pieces_available(),
+    reason="sibling pieces (pmg.collector/pmg.bob/pmg.eval) not finished yet",
+)
+def test_bob_max_cost_forwarded_to_generator(tmp_path, monkeypatch):
+    """--bob-max-cost reaches generate_postmortem as max_cost= for Bob/auto
+    runs, and is NOT forwarded for deterministic runs (that orchestrator
+    takes no kwargs). The recorder delegates to the deterministic floor so
+    the pipeline completes without the bob binary."""
+    from pmg.bob import generate_postmortem as real_generate
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _introducer, fix = _make_synthetic_repo(repo)
+    cfg = tmp_path / "case.json"
+    CaseConfig(
+        name="max-cost-fwd", repo="example/synthetic", issues=[],
+        fix_sha=fix, local_repo=str(repo),
+    ).save(cfg)
+
+    seen: list[dict] = []
+
+    def recording_generate(evidence, mode="auto", **kwargs):
+        seen.append({"mode": mode, **kwargs})
+        return real_generate(evidence, mode="deterministic")
+
+    import pmg.bob as bob_mod
+    monkeypatch.setattr(bob_mod, "generate_postmortem", recording_generate)
+
+    common = ["postmortem", "--case", str(cfg), "--offline",
+              "--skip-eval", "--out", str(tmp_path / "out")]
+    rc = cli.main([*common, "--mode", "bob", "--bob-max-cost", "2.5"])
+    assert rc == 0
+    rc = cli.main([*common, "--mode", "deterministic", "--bob-max-cost", "2.5"])
+    assert rc == 0
+
+    assert seen == [
+        {"mode": "bob", "max_cost": 2.5},   # forwarded as an orchestrator kwarg
+        {"mode": "deterministic"},          # not forwarded (no such kwarg there)
+    ]
 
 
 @pytest.mark.skipif(

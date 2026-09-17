@@ -107,6 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
         "the deterministic generator)",
     )
     p.add_argument(
+        "--bob-max-cost", type=float, default=None, metavar="N",
+        help="per-session Bobcoin cap forwarded to every `bob run` as "
+        "--max-cost N (Bob mode only; default: uncapped) — the sprint-day "
+        "budget guardrail (docs/BOBCOIN-BUDGET.md)",
+    )
+    p.add_argument(
         "--ground-truth", metavar="PATH", default=None,
         help="ground truth JSON for evaluation (default: "
         "data/ground_truth/ground_truth.json when it exists)",
@@ -231,9 +237,14 @@ def run_pipeline(args: argparse.Namespace, case: CaseConfig) -> int:
         raise
 
     # Stage 2 — generate (mode passthrough; auto falls back inside pmg.bob).
+    # --bob-max-cost only applies to Bob runs; the deterministic floor takes
+    # no orchestrator kwargs (its constructor has none).
+    gen_kwargs: dict[str, Any] = {}
+    if args.bob_max_cost is not None and args.mode in ("auto", "bob"):
+        gen_kwargs["max_cost"] = args.bob_max_cost
     with stage("generate_postmortem"):
         try:
-            pm = mods.generate_postmortem(evidence, mode=args.mode)
+            pm = mods.generate_postmortem(evidence, mode=args.mode, **gen_kwargs)
         except Exception as exc:
             if not _matches(exc, mods.bob_unavailable_cls, "BobUnavailableError"):
                 raise
