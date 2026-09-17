@@ -196,9 +196,59 @@ curl CVE-2023-38545.**
   mtimes). Verificación final: row-scan (gap limpio en los 4 frames) y revisión de frames
   4/4 PASS.
 
+## B8 — 2026-09-16 · Hardening pre-sprint: runbook + presupuesto + re-verificación
+- [x] **Re-verificación del status del hackathon** (sección fechada 2026-09-16 en
+      `docs/research/hackathon-status-2026-09-15.md`): tracks / jueces / 2º-challenge /
+      reglas-pre-existencia / Bobcoins-sep / plazos / premios / equipo **UNCHANGED**
+      vs 15-sep (a 9 días del kickoff). Único movimiento: registered builders
+      **10.420** / 1.698 equipos (vs ~10.700 / 1.742 — retroceso neto pese a +202/24h
+      ⇒ purge/dedup; no afecta el plan). Hallazgos nuevos: la oferta "40 Bobcoins/30
+      días" es del programa universitario BeMyApp (**no** del evento); hora del
+      workshop 24-sep discrepa entre fuentes (developer.ibm 12:00 ET vs BeMyApp
+      11:00–12:30 ET); bucket S3 sin PDF de reglas por 5º día consecutivo (nuevo
+      objeto más reciente sigue siendo del 29-ago).
+- [x] **`docs/SPRINT-RUNBOOK.md`**: checklist de prerequisitos con slots "verify at",
+      gates de hora-0 (a–e, incl. gate de decisión sobre política de pre-existencia
+      con pivot documentado — nunca esconder ni redatear trabajo pre-sprint), fases
+      P0–P9 con ventanas UTC (deadline interno de sumisión dom 13:00), ledger de
+      Bobcoins con disciplina de captura post-sesión (`bob_sessions/session-<NN>-<rol>/`
+      = requisito duro de sumisión), 8 kill criteria con hora-límite, 8 playbooks de
+      falla (acceso denegado / cuota menor / API changed / output inparseable /
+      rate-limit / export faltante / WSL), checklist de sumisión y tabla
+      baseline-a-batir. Hechos verificados contra el repo: timeout 900 s, exit codes,
+      paths de casos, métricas por caso, `bob --list-tasks`.
+- [x] **`docs/BOBCOIN-BUDGET.md`**: prompts de rol **medidos** con `build_role_prompt`
+      sobre la evidencia real (curl ~7.4K tok · log4j ~90K · gitlab ~5K; pico ~43K
+      tok << contexto 270K de Bob), envelope de 5 clases de sesión, tabla de 22
+      sesiones → worst-case **32 + 8 de margen = 40** (mediana esperada ≈ 22), y
+      **cut ladder re-derivada** — los umbrales 25/15/8/4 sugeridos por el brief NO
+      verifican contra la aritmética; bandas correctas: ≥38 completo / 33–37 sin
+      gitlab / 24–32 sin log4j / 19–23 sin demo CI / ≤18 curl a 2 roles, con regla
+      comprometido ≤ Q − max(2, 0.15·Q). Calibración hora-1 leyendo
+      `stats.session_costs` del envelope JSON.
+- [x] **Guardarrailes de gasto en código**: `--bob-max-cost N` en el CLI (se forwarda
+      a cada `bob run` como `--max-cost`; el piso determinista no lo consume), input
+      `bob_max_cost` (default 1) en `postmortem.yml` para dispatch — el trigger push
+      sigue determinista = 0 Bobcoins por construcción — y `PMG_ANALYST_ROLES` (env
+      override de `ANALYST_ROLE_IDS`) para ejecutar el rung-4 sin tocar código el
+      día del sprint.
+- [x] **Dry-run offline completo**: `scripts/verify_sprint_ready.sh` → **READY
+      OFFLINE** (16 checks, 15 PASS / 1 WARN esperado por STATUS sucio); suite
+      **175 tests, 0 fallos** (172 + 3 nuevos: parse y forward de `--bob-max-cost`,
+      override de roles con validación); UI rebuild byte-idéntica; 3 pipelines
+      offline exit 0 con 6 artefactos c/u; honestidad curl/log4j/gitlab linkage 1.0
+      con impact/detection rojos y 0 claims. Fix de rot: `scripts/bob-postmortem.sh`
+      ahora prefiere `python3.12` (el `python3` del PATH es 3.11 de otro venv y
+      rompía el fallback fuera del repo root).
+- [x] Commits lógicos por bloque (runbook · presupuesto · re-verificación ·
+      guardarrailes). Sin push (publicación = gate aparte del usuario).
+
 ## Checklist arranque del sprint (vie 25-sep, antes de comprometer horas)
-- Re-verificar `docs/research/hackathon-status-2026-09-15.md` (jueces/tracks, 2º challenge,
-  reglas, política de pre-existencia).
-- Verificar cupo real de Bobcoins de la edición de septiembre (cifra ~40 es de mayo).
-- Smoke test de acceso a IBM Bob 2.0 (Agent mode + Bob Shell) apenas abra la ventana.
-- NUNCA contactar organizadores.
+- [x] Re-verificar el status del hackathon — HECHO 2026-09-16 (sección
+      "Re-verification 2026-09-16" en `docs/research/hackathon-status-2026-09-15.md`:
+      todo UNCHANGED salvo el conteo registrado).
+- [ ] Verificar cupo real de Bobcoins de la edición de septiembre en la apertura
+      (cifra ~40 es de mayo; decidir por banda según `docs/BOBCOIN-BUDGET.md` §5).
+- [ ] Smoke test de acceso a IBM Bob 2.0 (Agent mode + Bob Shell) apenas abra la
+      ventana (gates hora-0 y playbooks: `docs/SPRINT-RUNBOOK.md` §3/§7).
+- [ ] NUNCA contactar organizadores.
