@@ -1,6 +1,11 @@
 # STATUS — pre-sprint build log
 
 Sprint: IBM Bob 2.0 hackathon (lablab.ai), vie 25-sep 15:00 UTC → dom 27-sep 15:00 UTC.
+
+> **[ ] HUMANO — deadline vie 25-sep 15:00 UTC (kickoff): confirmar registration en lablab**
+> (<https://lablab.ai/ai-hackathons/ibm-bob-2-hackathon> debe mostrar "Registered";
+> el evento cierra el registro al kickoff — hard gate, 17-sep aún ABIERTO, no verificable
+> desde tooling — requiere login humano).
 Today (pre-sprint, 2026-09-15): build pieces 1 & 4 complete + skeletons of 2 & 3, all
 running offline over a local clone of curl. **Demo/eval siempre sobre el caso real
 curl CVE-2023-38545.**
