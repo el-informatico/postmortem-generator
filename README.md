@@ -95,6 +95,9 @@ Repo-derivable metrics (linkage, honesty, grounded timeline) are already at ceil
 any AI. Narrative metrics (root cause, action items, line agreement) are the explicit target
 of the Bob Agent-mode sessions during the sprint — this table is the baseline they must beat.
 
+Methodology (what each metric means, its threshold, worked match/no-match examples from the
+real run, and where the 29% comes from): **[docs/EVAL-METHODOLOGY.md](docs/EVAL-METHODOLOGY.md)**.
+
 ### Secondary cases (real, quote-faithful ground truth)
 
 | Case | Kind | Pipeline result (deterministic floor) |

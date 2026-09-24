@@ -123,7 +123,18 @@ ROLES: list[RoleDef] = [
             "every claim links to evidence refs, and sections without "
             "evidence say 'No evidence' instead of inventing content. "
             "impact and detection come out red unless the evidence truly "
-            "contains them."
+            "contains them. "
+            "action_items can be partially grounded: 'upgrade to the first "
+            "release containing the fix (release:<tag>)', 'apply the fix "
+            "commit (commit:<sha>)' and 'keep the regression test added "
+            "with the fix' are evidence-backed; generic advice beyond that "
+            "stays out. "
+            "In root_cause, state the failure mode first, in the terms the "
+            "evidence provides (case summary, fix message), then "
+            "attribution; keep candidate-noise analysis short. "
+            "timeline holds incident milestones only (introduction, "
+            "releases, fix); blame candidates belong in root_cause, not "
+            "timeline."
         ),
         inputs=("introducer_candidates", "fix_commit", "issues", "timeline"),
         output_contract=SYNTH_OUTPUT_CONTRACT,
