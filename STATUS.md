@@ -252,8 +252,16 @@ curl CVE-2023-38545.**
 - [x] Re-verificar el status del hackathon — HECHO 2026-09-16 (sección
       "Re-verification 2026-09-16" en `docs/research/hackathon-status-2026-09-15.md`:
       todo UNCHANGED salvo el conteo registrado).
-- [ ] Verificar cupo real de Bobcoins de la edición de septiembre en la apertura
-      (cifra ~40 es de mayo; decidir por banda según `docs/BOBCOIN-BUDGET.md` §5).
+- [x] Verificar cupo real de Bobcoins de la edición de septiembre en la apertura —
+      HECHO 2026-09-25 11:39: portal bob.ibm.com/admin/subscription confirma team
+      `ibm-hackathon-lablab` (Enterprise, us-east) con spending limit 40 / usage 0 /
+      remaining 40. Evidencia: `bob_sessions/00-account-setup/pmghour0_bobcoins_balance_initial.png`.
+      Se aplica el plan completo (banda ≥38 → presupuesto 32 + margen 8 según
+      `docs/BOBCOIN-BUDGET.md` §5).
 - [ ] Smoke test de acceso a IBM Bob 2.0 (Agent mode + Bob Shell) apenas abra la
       ventana (gates hora-0 y playbooks: `docs/SPRINT-RUNBOOK.md` §3/§7).
+      PARCIAL 2026-09-25 ~11:45: IBMid creado y login OK con
+      ingenierodesistemas@gmail; Bob IDE **2.2.0** ya instalado en Windows (≥ 2.0.2 ✓).
+      PENDIENTE para la noche: login del IDE con la cuenta del evento, verificar
+      Settings → General = ibm-hackathon-lablab, smoke `bob run "reply with ok"`.
 - [ ] NUNCA contactar organizadores.
