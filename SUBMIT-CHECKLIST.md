@@ -32,7 +32,7 @@
 | 4 | **Technology & Category Tags** | 🔨 propuesta lista (§3.4) | este archivo §3.4 | elegir 5-8 tags en el form | Juan |
 | 5 | **Cover Image** (16:9) | ❌ falta — propuesta en §4.3 (NO generar aún) | — | screenshot del viewer UI (recomendada) o metrics card | Juan+Claude (P7) |
 | 6 | **Video Presentation** | ✅ listo — 4:27, 48.8 MB (≤300 MB y ≤5 min ✓✓) | `~/projects/postmortem-generator-deliverables/video-v1/postmortem-generator-demo-v1.mp4` + `VIDEO-AUDIT-v1.md` + `captions.srt` | NADA (ship v1 tal cual — decisión tomada, plan fila 6). Sin re-encode: 48.8 MB sobra | — |
-| 7 | **Slide Presentation** | ❌ falta (campo REQUERIDO) — ningún .pptx/.pdf en repo | fuente: `docs/video-script.md` beats + tabla README + `docs/assets/video-dryrun/beat*.png` | crear deck P7 (fila 6, 2 h máx): problema→arquitectura→métricas→cómo se usó Bob→evidencia | Juan+Claude (P7) |
+| 7 | **Slide Presentation** | ✅ listo — 9 slides, 16:9, 64 KB | `deliverables/deck/postmortem-generator-deck-v1.pdf` (+ `.md` fuente + `scripts/build_deck.py`) | NADA — subir el PDF al form. Métricas reales del run Bob (baseline honesto 0.33 vs 0.22; ver `~/deck-estado-2026-09-27.md`) | hecho por Claude 27-sep |
 | 8 | **Demo Application Platform** | 🔨 = GitHub | repo público (§2) | (opcional: GitHub Pages, ver #9) | Juan |
 | 9 | **Application URL** | 🔨 = `https://github.com/el-informatico/postmortem-generator` | gh repo view (§2) | OPCIONAL mejorar: publicar `ui/index.html` en GitHub Pages (~10 min, riesgo bajo; hoy NO existe, API pages 404) — decide Juan en P7 | Juan |
 | 10 | **"Include code/files where IBM Bob assisted"** | 🔨 apuntadores listos (§3.5): `pmg/bob/`, `.bob/`, `bob_sessions/` | carpetas en repo | que F2-F5 committeen sus capturas | agent runner |
@@ -74,7 +74,9 @@ Extras en la misma carpeta: `VIDEO-AUDIT-v1.md` (auditoría completa), `captions
 ### README / deck / cover
 - `README.md` existe (10,988 B, 22-sep) con arquitectura + tabla métricas baseline. Falta la
   pasada P8: añadir columna/fila de **deltas Bob reales** (llegan de F3) manteniendo honestidad.
-- Slide deck: **no existe ningún .pptx/.pdf** en el repo (find verificado) → P7.
+- Slide deck: ✅ creado 27-sep — `deliverables/deck/postmortem-generator-deck-v1.pdf`
+  (9 slides, 16:9, 960×540 pt, 65,673 bytes, verificado con pypdf; fuente `.md` + builder
+  `scripts/build_deck.py`).
 - Cover: no existe. Propuestas en §4.3 (NO generar aún, orden de la misión).
 
 ## 3. Borradores de campos (listos para pegar; EN inglés donde el form lo exige)
