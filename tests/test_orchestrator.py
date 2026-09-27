@@ -214,6 +214,51 @@ def test_bob_unavailable_error_carries_reason() -> None:
     assert isinstance(err, RuntimeError)
 
 
+# -- (c2) command building: optional BOB_WORKSPACE pin ------------------------
+
+
+def _cmd(orch: BobOrchestrator) -> list[str]:
+    from pmg.bob.roles import ROLES
+
+    return orch._build_command(ROLES[0], "prompt")
+
+
+def test_build_command_no_workspace_by_default(
+    evidence: Evidence, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("BOB_WORKSPACE", raising=False)
+    cmd = _cmd(BobOrchestrator(evidence))
+    assert "--workspace" not in cmd
+
+
+def test_build_command_bob_workspace_env_adds_flag(
+    evidence: Evidence, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BOB_WORKSPACE", "/tmp/some-workspace")
+    cmd = _cmd(BobOrchestrator(evidence))
+    i = cmd.index("--workspace")
+    assert cmd[i + 1] == "/tmp/some-workspace"
+
+
+def test_build_command_bob_workspace_env_wins_over_workdir(
+    evidence: Evidence, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("BOB_WORKSPACE", "/tmp/env-workspace")
+    cmd = _cmd(BobOrchestrator(evidence, workdir=tmp_path))
+    i = cmd.index("--workspace")
+    assert cmd.count("--workspace") == 1
+    assert cmd[i + 1] == "/tmp/env-workspace"
+
+
+def test_build_command_workdir_used_when_env_unset(
+    evidence: Evidence, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("BOB_WORKSPACE", raising=False)
+    cmd = _cmd(BobOrchestrator(evidence, workdir=tmp_path))
+    i = cmd.index("--workspace")
+    assert cmd[i + 1] == str(tmp_path)
+
+
 # -- (d) parse + normalize (no shelling out) ---------------------------------
 
 

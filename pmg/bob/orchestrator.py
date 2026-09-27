@@ -1278,18 +1278,33 @@ class BobOrchestrator:
         return key
 
     def _build_command(self, role: RoleDef, prompt: str) -> list[str]:
+        # Bob Shell 2.0.x: custom modes are selected with --mode <slug>
+        # (the 1.x --chat-mode=<slug> flag was removed; playbook 3, 2026-09-26).
         cmd = [
             self.bob_bin,
             "run",
-            f"--chat-mode={role.slug}",
+            "--mode",
+            role.slug,
             "--format",
             "json",
             "--accept-license",
         ]
         if self.max_cost is not None:
             cmd += ["--max-cost", str(self.max_cost)]
-        if self.workdir is not None:
-            cmd += ["--workspace", str(self.workdir)]
+        # Optional workspace pin (ws-relabel mission, 2026-09-27): when the
+        # BOB_WORKSPACE env var is set, its value is passed as --workspace
+        # (it wins over the constructor workdir) so tasks register under a
+        # chosen workspace instead of the process CWD. Caveat: bob only
+        # accepts --workspace values that are existing LOCAL directories
+        # and serializes them as file:<abs-path>; a Windows/UNC workspace
+        # string (e.g. the Bob IDE's file:\\wsl.localhost\...) is rejected
+        # with "Workspace directory does not exist" — see
+        # ~/ws-relabel-2026-09-27.md for the import/export workaround.
+        workspace = os.environ.get("BOB_WORKSPACE") or (
+            str(self.workdir) if self.workdir is not None else None
+        )
+        if workspace is not None:
+            cmd += ["--workspace", workspace]
         cmd.append(prompt)
         return cmd
 
